@@ -1,6 +1,15 @@
 {
   "name": "audaxtech-workflow",
-  "description": "An opinionated project workflow: bootstrap a repo with process docs, CI, a GitHub Projects board and hooks; a pinned-toolchain generator; a PR-readiness check; and two independent test reviewers.",
-  "author": { "name": "Dave Myers" },
-  "keywords": ["workflow", "github-projects", "pr-review", "bootstrap"]
+  "description": "A project workflow built for game development: bootstrap a repo with process docs, CI and a GitHub Projects board; a pinned-toolchain generator; a PR-readiness check; two independent test reviewers; and opt-in merge-gate hooks. Works for other project kinds too.",
+  "author": {
+    "name": "Dave Myers"
+  },
+  "keywords": [
+    "gamedev",
+    "godot",
+    "workflow",
+    "github-projects",
+    "pr-review",
+    "bootstrap"
+  ]
 }

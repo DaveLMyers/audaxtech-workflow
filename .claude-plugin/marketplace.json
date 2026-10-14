@@ -1,12 +1,14 @@
 {
   "name": "audaxtech",
   "description": "Audax Tech's Claude Code plugins.",
-  "owner": { "name": "Audax Tech" },
+  "owner": {
+    "name": "Audax Tech"
+  },
   "plugins": [
     {
       "name": "audaxtech-workflow",
       "source": "./",
-      "description": "Opinionated project workflow: bootstrap skill, toolchain generator, pr-check, reviewer agents, and opt-in hooks."
+      "description": "A project workflow built for game development (works for other kinds too): bootstrap skill, toolchain generator, pr-check, reviewer agents and opt-in hooks."
     }
   ]
 }

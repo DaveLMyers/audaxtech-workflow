@@ -1,31 +1,66 @@
 # audaxtech-workflow
 
-A Claude Code plugin: an opinionated project workflow, packaged.
+A [Claude Code](https://claude.com/claude-code) plugin: a project workflow **built for game development**, packaged so you can start a new game with the process already in place. It works for other kinds of project too (see [Kinds and stacks](#kinds-and-stacks)), but games are the default and the best-supported path.
+
+It encodes one opinionated way of working: every change is an issue on a board, work happens on a branch, a PR is not "done" until CI is green and an independent review has been run, and judgment calls are written down. The pieces below make that cheap to set up and hard to skip.
+
+## What's in it
 
 | Piece | What it does |
 |---|---|
-| `project-bootstrap` skill | Scaffolds a repo's process: CONTRIBUTING, DECISIONS log, issue/PR templates, CI skeleton, CLAUDE.md, a GitHub Projects v2 board with columns, priority field and labels. |
-| Stack modules (`skills/project-bootstrap/templates/stacks/`) | Engine/language conventions, testing section, CI steps and ignore rules, chosen at bootstrap. Today: `godot-gdscript` (with optional cross-platform and translatable-text modules). Games are the default kind; add a stack per engine. |
-| `toolchain-run` skill | Generates a pinned, repo-local toolchain setup (version pin, setup scripts, a `run` skill). |
-| `pr-check` skill | The pre-merge checklist: boots it, tests, independent review, live verification, docs. |
-| `github-projects-workflow` skill | Gotchas for driving a Projects v2 board with `gh`. |
-| `blind-spec-reviewer` agent | Lists what should be tested, from the spec alone. |
-| `test-saboteur` agent | Finds wrong implementations the existing tests would accept. |
-| Hooks | Deny `gh pr merge` unless CI is green; deny git-mutating commands run outside the session's repo. **Inert** in any project without `.claude/workflow.json`. |
+| `project-bootstrap` skill | Scaffolds a new repo's process: CONTRIBUTING, a DECISIONS log, issue/PR templates, a CI workflow, CLAUDE.md, and a GitHub Projects v2 board with columns, a priority field and labels. For a game it also adds the game docs (VISION, DESIGN, GAMEPLAY, HOW_TO_PLAY, a design-ideas log). |
+| Stack modules | Engine conventions, testing guidance, CI steps and ignore rules, picked at bootstrap. Today: `godot-gdscript`, with optional cross-platform and translatable-text rules (both on by default for games). |
+| `toolchain-run` skill | Generates a pinned, repo-local toolchain setup (version pin file, bash and PowerShell setup scripts, a `run` skill) so nobody installs the engine system-wide or hunts for it. Reuses an install you already have, but only if it is exactly the pinned version. |
+| `pr-check` skill | The pre-merge checklist: it boots and tests the project, runs an independent review, checks docs, and for a game means actually playing the change. |
+| `blind-spec-reviewer` agent | Lists what should be tested, from the spec alone, never seeing the implementation. |
+| `test-saboteur` agent | Tries to build subtly wrong implementations the existing tests would still accept. |
+| `github-projects-workflow` skill | Gotchas for driving a Projects v2 board with `gh` (issues don't join the board on their own, `item-list` silently paginates, and so on). |
+| Hooks | A merge gate that denies a PR merge unless CI is green, and a guard that denies git-mutating commands run from the wrong repository. Both are **inert** in any project without a `.claude/workflow.json` marker. |
 
-Personal defaults live in `~/.claude/workflow-profile.json`; see
-`skills/project-bootstrap/references/PROFILE.md`.
-
-## Try it locally
+## Install
 
 ```
-claude --plugin-dir <path-to>/audaxtech-workflow
+/plugin marketplace add DaveLMyers/audaxtech-workflow
+/plugin install audaxtech-workflow@audaxtech
 ```
-`/reload-plugins` picks up edits in a running session. Skills are then
-`/audaxtech-workflow:project-bootstrap` etc. Validate with
-`claude plugin validate <path-to>/audaxtech-workflow`.
 
-Tests: `bash tests/run-hook-tests.sh` and `bash tests/run-toolchain-tests.sh` (both self-contained; the second serves a fake tool from localhost and cleans up after itself).
+Or from a shell: `claude plugin marketplace add DaveLMyers/audaxtech-workflow`, then `claude plugin install audaxtech-workflow@audaxtech`. Restart Claude Code to load it. Skills are then namespaced, e.g. `/audaxtech-workflow:project-bootstrap`.
 
-Requires `bash`, `python` and `gh` on PATH (Git Bash on Windows). Tested on
-Windows only so far.
+Requires `bash`, `python` and `gh` (GitHub CLI, with the `project` scope for board creation) on PATH. On Windows, use Git Bash.
+
+## Use it
+
+In a new or existing repo, ask Claude to bootstrap the project (or run `/audaxtech-workflow:project-bootstrap`). It asks what kind of project it is, then which engine, proposes the labels and board, and **asks once before touching GitHub** (creating the repo, board and labels). Local files are written first, so a failure in the board step leaves a working repo.
+
+A project opts in to the hooks by having `.claude/workflow.json`, which bootstrap writes. Delete it, or set a component to `false` in it, to switch a hook off for that one project.
+
+## Kinds and stacks
+
+- **Kind** is what the project is: `game` (the default), `web`, `library` or `other`. It chooses the area-label preset and the kind-specific docs and process sections.
+- **Stack** is the engine or language: `godot-gdscript` today. It supplies conventions, testing guidance, CI steps and `.gitignore` lines.
+- Add a stack by adding a folder under `skills/project-bootstrap/templates/stacks/` with a `stack.json`. Nothing is invented for an engine that has no stack: bootstrap falls back to generic text and says so.
+
+Personal defaults (GitHub owner, merge method, board columns, CI matrix, components) live in `~/.claude/workflow-profile.json`; see [`skills/project-bootstrap/references/PROFILE.md`](skills/project-bootstrap/references/PROFILE.md).
+
+## What is verified, and what is not
+
+This was extracted from two real Godot projects and then tested piece by piece.
+
+**Tested:** the hooks (45 cases, `tests/run-hook-tests.sh`, each fix sabotage-checked), the toolchain generator for both bash and PowerShell, including fresh install, version bump, bad pin, and reuse of an existing install by flag, env var and PATH (20 cases, `tests/run-toolchain-tests.sh`, which serves a fake tool from localhost), and the merge gate live in a real repository.
+
+**Not yet verified:**
+- the cwd guard triggered live (unit-tested only: a stale `cd` cannot be reproduced in the harness);
+- the macOS Godot download path (the URL and bundle layout come from a working setup but have not been fetched by the generated script);
+- the three-OS CI matrix on GitHub Actions;
+- the Godot stack module rendered through a fresh bootstrap run;
+- anything on Linux or macOS: it has been developed and tested on Windows with Git Bash.
+- There is no Unity (or other engine) stack yet.
+
+## Tests
+
+```
+bash tests/run-hook-tests.sh
+bash tests/run-toolchain-tests.sh
+claude plugin validate .
+```
+Both test scripts are self-contained and clean up after themselves.
