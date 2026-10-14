@@ -63,10 +63,43 @@ TARGET="$(printf '%s' "$COMMAND" | grep -oE 'gh[[:space:]]+pr[[:space:]]+merge[[
 # timeout budget, so a hung/slow `gh pr checks` fails this script closed
 # (an explicit deny below) rather than racing an external hook-timeout
 # whose allow-vs-deny behavior on expiry isn't guaranteed.
+#
+# GNU `timeout` is missing on stock macOS (and `gtimeout` only exists with
+# Homebrew coreutils), where a bare `timeout` call would fail and make this
+# gate deny every merge. So fall back to a small shell watchdog with the same
+# contract: merged stdout+stderr, the command's exit code, 124 on timeout.
+# WORKFLOW_HOOKS_NO_TIMEOUT_BIN=1 forces the fallback (used by the tests).
+run_with_timeout() {
+  local secs="$1"; shift
+  if [ -z "${WORKFLOW_HOOKS_NO_TIMEOUT_BIN:-}" ] && command -v timeout >/dev/null 2>&1; then
+    timeout "${secs}s" "$@"
+  elif [ -z "${WORKFLOW_HOOKS_NO_TIMEOUT_BIN:-}" ] && command -v gtimeout >/dev/null 2>&1; then
+    gtimeout "${secs}s" "$@"
+  else
+    local out flag pid wd rc
+    out="$(mktemp)"; flag="$out.timedout"
+    "$@" >"$out" 2>&1 &
+    pid=$!
+    # TERM at the deadline, KILL two seconds later if it is still there. The
+    # flag file is how we know the watchdog fired, so a command that exits 128+
+    # on its own is not mistaken for a timeout.
+    ( sleep "$secs"; : >"$flag"; kill "$pid" 2>/dev/null; sleep 2; kill -9 "$pid" 2>/dev/null ) >/dev/null 2>&1 &
+    wd=$!
+    wait "$pid"; rc=$?
+    kill "$wd" 2>/dev/null
+    cat "$out"
+    if [ -e "$flag" ]; then rc=124; fi
+    rm -f "$out" "$flag"
+    return "$rc"
+  fi
+}
+
+# WORKFLOW_HOOKS_GH_TIMEOUT overrides the 20s limit (used by the tests).
+GH_TIMEOUT="${WORKFLOW_HOOKS_GH_TIMEOUT:-20}"
 if [ -n "$TARGET" ]; then
-  CHECKS_RAW="$(timeout 20s gh pr checks "$TARGET" --json name,bucket 2>&1)" && GH_RC=0 || GH_RC=$?
+  CHECKS_RAW="$(run_with_timeout "$GH_TIMEOUT" gh pr checks "$TARGET" --json name,bucket 2>&1)" && GH_RC=0 || GH_RC=$?
 else
-  CHECKS_RAW="$(timeout 20s gh pr checks --json name,bucket 2>&1)" && GH_RC=0 || GH_RC=$?
+  CHECKS_RAW="$(run_with_timeout "$GH_TIMEOUT" gh pr checks --json name,bucket 2>&1)" && GH_RC=0 || GH_RC=$?
 fi
 
 if [ "$GH_RC" -eq 124 ]; then
@@ -74,7 +107,7 @@ if [ "$GH_RC" -eq 124 ]; then
   exit 0
 fi
 
-export CHECKS_RAW
+export CHECKS_RAW GH_RC
 
 python -c '
 import os, json
@@ -94,6 +127,16 @@ except Exception:
     raise SystemExit
 
 bad = [c for c in checks if c.get("bucket") not in ("pass", "skipping")]
+if not bad and os.environ.get("GH_RC", "0") != "0":
+    # gh failed yet reported nothing wrong: do not trust the output.
+    print(json.dumps({
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": "Blocked gh pr merge: gh pr checks exited with status " + os.environ["GH_RC"] + " although it reported no failing check, so the result cannot be trusted. Resolve that first, or ask the user to confirm merging anyway.",
+        }
+    }))
+    raise SystemExit
 if bad:
     summary = ", ".join(c.get("name", "?") + ": " + c.get("bucket", "?") for c in bad)
     print(json.dumps({

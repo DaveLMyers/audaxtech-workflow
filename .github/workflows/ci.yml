@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# A rapid string of pushes to the same PR shouldn't queue a full run per push:
+# cancel anything a newer run has made moot. Only for pull requests - a run on
+# a main commit should always finish, or that commit never gets a result.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Tests (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    # A hung suite should fail fast, not hold a runner for the 6-hour default.
+    timeout-minutes: 15
+    # The plugin is meant to run wherever Claude Code does, so each OS runs the
+    # same suites as its own check, and one failing OS must not hide the others.
+    # The repo is public, so Actions minutes are free; trim the matrix with
+    # `ci.matrix` in .claude/workflow.json if that changes.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: "Linux", os: ubuntu-latest }
+          - { name: "macOS Apple Silicon", os: macos-latest }
+          - { name: "Windows", os: windows-latest }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # On Windows, `bash` resolves to Git Bash (preinstalled on the runner),
+      # which is the supported environment for the hooks.
+      - name: Hook tests
+        shell: bash
+        run: bash tests/run-hook-tests.sh
+      - name: Toolchain generator tests
+        shell: bash
+        run: bash tests/run-toolchain-tests.sh
+      - name: work-issue helper tests
+        shell: bash
+        run: bash tests/run-workissue-tests.sh
