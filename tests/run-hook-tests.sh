@@ -94,6 +94,37 @@ marker '{"version":1,"components":{"merge_gate_hook":false}}'
 FAKE_GH_CHECKS='[{"name":"test","bucket":"fail"}]' \
   run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";        expect_allow "merge gate switched off per project"
 
+echo "== text that merely MENTIONS a command is not a command (red CI, marker present)"
+marker '{"version":1,"components":{}}'
+RED='[{"name":"test","bucket":"fail"}]'
+M="gh pr"" merge"
+export FAKE_GH_CHECKS="$RED"
+run_hook block-merge-if-ci-red.sh "$T" "$T" "git commit -m \"fix: $M deny rule\"";        expect_allow "commit message in double quotes"
+run_hook block-merge-if-ci-red.sh "$T" "$T" "git commit -m 'fix: $M deny rule'";          expect_allow "commit message in single quotes"
+run_hook block-merge-if-ci-red.sh "$T" "$T" "echo '$M 5'";                                expect_allow "echo of the phrase"
+run_hook block-merge-if-ci-red.sh "$T" "$T" "grep -rn \"$M\" docs/";                      expect_allow "grep pattern"
+run_hook block-merge-if-ci-red.sh "$T" "$T" $'git commit -F - <<\'EOF\'\nsubject\n\nbody says '"$M"$' 5\nEOF'; expect_allow "heredoc body fed to git"
+run_hook block-merge-if-ci-red.sh "$T" "$T" "gh pr create --title t --body \"closes the $M gap\""; expect_allow "PR body mentioning it"
+
+echo "== real invocations are still caught, however they are wrapped"
+run_hook block-merge-if-ci-red.sh "$T" "$T" "echo hi; $M 5";                              expect_deny "after a semicolon"
+run_hook block-merge-if-ci-red.sh "$T" "$T" "git commit -m \"x $M y\" && $M 5";           expect_deny "real merge after a harmless quoted mention"
+run_hook block-merge-if-ci-red.sh "$T" "$T" "bash -c \"$M 5\"";                           expect_deny "inside bash -c"
+run_hook block-merge-if-ci-red.sh "$T" "$T" "sh -c '$M 5'";                               expect_deny "inside sh -c with single quotes"
+run_hook block-merge-if-ci-red.sh "$T" "$T" "eval '$M 5'";                                expect_deny "inside eval"
+run_hook block-merge-if-ci-red.sh "$T" "$T" "echo \"\$($M 5)\"";                          expect_deny "command substitution in double quotes"
+run_hook block-merge-if-ci-red.sh "$T" "$T" "echo \`$M 5\`";                              expect_deny "backtick substitution"
+run_hook block-merge-if-ci-red.sh "$T" "$T" $'bash <<\'EOF\'\n'"$M"$' 5\nEOF';            expect_deny "heredoc executed by bash"
+run_hook block-merge-if-ci-red.sh "$T" "$T" "echo \"oops $M 5";                           expect_deny "unterminated quote fails safe"
+unset FAKE_GH_CHECKS
+
+echo "== same rule for the cwd guard (run from a different repo)"
+run_hook guard-repo-cwd.sh "$T" "$O" 'echo "git commit -m x"';                             expect_allow "echo mentioning git commit"
+run_hook guard-repo-cwd.sh "$T" "$O" 'grep "git push" notes.txt';                          expect_allow "grep for git push"
+run_hook guard-repo-cwd.sh "$T" "$O" 'gh pr create --body "then git push the branch"';     expect_allow "PR body mentioning git push"
+run_hook guard-repo-cwd.sh "$T" "$O" 'git commit -m "mentions git push in its message"';  expect_deny  "real commit with a mention in the message"
+run_hook guard-repo-cwd.sh "$T" "$O" 'bash -c "git push origin main"';                     expect_deny  "git push inside bash -c"
+
 rm -rf "$T" "$O" "$FAKEBIN"
 echo; echo "passed: $PASS   failed: $FAIL"
 [ "$FAIL" -eq 0 ]
