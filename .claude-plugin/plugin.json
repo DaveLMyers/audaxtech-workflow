@@ -1,0 +1,6 @@
+{
+  "name": "audaxtech-workflow",
+  "description": "An opinionated project workflow: bootstrap a repo with process docs, CI, a GitHub Projects board and hooks; a pinned-toolchain generator; a PR-readiness check; and two independent test reviewers.",
+  "author": { "name": "Dave Myers" },
+  "keywords": ["workflow", "github-projects", "pr-review", "bootstrap"]
+}

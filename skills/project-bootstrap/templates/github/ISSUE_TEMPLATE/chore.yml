@@ -1,0 +1,18 @@
+name: Chore
+description: Tooling, docs, cleanup, or other non-feature work
+labels: ["type:chore"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: What needs doing
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+{{AREA_OPTIONS}}
+    validations:
+      required: false

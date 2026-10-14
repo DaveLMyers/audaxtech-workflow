@@ -1,0 +1,34 @@
+{
+  "tool": "Godot",
+  "name": "godot",
+  "project": "Critter Wars",
+  "version": "4.7.2-stable",
+  "pin_file": ".godot-version",
+  "bin_dir": ".godot-bin",
+  "version_args": ["--headless", "--version"],
+  "version_match": "{version_core}",
+  "platforms": {
+    "windows": {
+      "url": "https://github.com/godotengine/godot/releases/download/{version}/Godot_v{version}_win64.exe.zip",
+      "archive": "zip",
+      "bin": "Godot_v{version}_win64_console.exe"
+    },
+    "linux": {
+      "url": "https://github.com/godotengine/godot/releases/download/{version}/Godot_v{version}_linux.x86_64.zip",
+      "archive": "zip",
+      "bin": "Godot_v{version}_linux.x86_64"
+    },
+    "macos": {
+      "unsupported": "macOS isn't wired up in this script yet (Godot's macOS release ships as a .app bundle, which needs different handling than the plain-binary Linux/Windows releases).\nDownload manually from https://godotengine.org/download/macos/ and place the binary at .godot-bin/godot, or extend this script for the .app layout."
+    }
+  },
+  "notes": [
+    "**Windows gotcha (confirmed by testing):** Godot's Windows zip ships a plain GUI-subsystem exe and a `_console` variant. The plain build opens a window but its stdout is NOT reliably capturable by a script; the console build's is, and it opens a normal game window too without `--headless`. So the launcher forwards to the console build. That build also refuses to run if renamed (\"Invalid wrapper executable name\"), which is why the launcher forwards to it instead of aliasing it.",
+    "**`--headless` matters for `--version`:** without it Godot tries to init a graphical context before printing."
+  ],
+  "commands": [
+    {"title": "Run the test suite (GUT)", "cmd": "{bin} --headless -s addons/gut/gut_cmdln.gd -gconfig=res://.gutconfig.json"},
+    {"title": "Import / script-error check (what CI runs before tests)", "cmd": "{bin} --headless --editor --quit", "note": "Then check the output for `SCRIPT ERROR` - a hit means fail; don't eyeball it. A fresh checkout has no `.godot/` cache, so global `class_name` lookups fail until one full import pass runs."},
+    {"title": "Launch the actual game window (real play-testing)", "cmd": "{bin} --path .", "note": "From a Claude Code session, launch as a background task and have the user interact and report back. **Check for an already-running instance first** (`tasklist //FI \"IMAGENAME eq Godot*\"` on Windows) and surface a stale one to the user rather than launching a duplicate."}
+  ]
+}

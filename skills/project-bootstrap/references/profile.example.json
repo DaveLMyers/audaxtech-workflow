@@ -1,0 +1,55 @@
+{
+  "version": 1,
+
+  "identity": {
+    "github_owner": "your-github-login",
+    "default_visibility": "private"
+  },
+
+  "git": {
+    "merge_method": "squash",
+    "commit_convention": "conventional",
+    "branch_pattern": "{type}/{slug}",
+    "delete_branch_on_merge": true
+  },
+
+  "board": {
+    "enabled": true,
+    "title": "{project} backlog",
+    "columns": {
+      "backlog": "Backlog",
+      "ready": "Ready",
+      "in_progress": "In Progress",
+      "in_review": "In Review",
+      "done": "Done"
+    },
+    "priorities": ["P1", "P2", "P3"]
+  },
+
+  "labels": {
+    "types": ["feature", "bug", "chore", "docs"],
+    "area_presets": {
+      "default": ["core", "ui", "build"],
+      "game": ["board", "ui", "audio", "build"]
+    }
+  },
+
+  "review": {
+    "independent_review_required": true,
+    "default_effort": "medium"
+  },
+
+  "ci": {
+    "os": ["ubuntu-latest"]
+  },
+
+  "components": {
+    "issue_and_pr_templates": true,
+    "decisions_log": true,
+    "pr_check_skill": true,
+    "run_skill_and_toolchain": true,
+    "ci": true,
+    "merge_gate_hook": true,
+    "cwd_guard_hook": true
+  }
+}

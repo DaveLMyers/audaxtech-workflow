@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+# Behavior tests for the plugin's hooks. Self-contained and safe to run
+# anywhere: it builds throwaway git repos in temp dirs, and uses a FAKE `gh`
+# on PATH, so it never touches a real repo, PR or network.
+#
+# Usage: bash tests/run-hook-tests.sh      (exit 0 = all passed)
+#
+# Note for Claude Code sessions: the merge-gate hook inspects the Bash command
+# text, so a command line that literally contains the merge phrase is denied
+# before it runs. This file assembles that phrase at runtime (MERGE=...) so
+# running the suite is not itself blocked.
+set -u
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+H="$HERE/../hooks"
+T="$(mktemp -d)"      # the "project" (has/lacks .claude/workflow.json per test)
+O="$(mktemp -d)"      # an unrelated repo
+FAKEBIN="$(mktemp -d)"
+git -C "$T" init -q; git -C "$O" init -q; mkdir -p "$T/.claude"
+MERGE="gh pr"" merge 42"
+
+# Fake gh: `gh pr checks ...` prints $FAKE_GH_CHECKS, or fails with
+# $FAKE_GH_ERR (exit 1) when that is set. Anything else exits 1.
+cat > "$FAKEBIN/gh" <<'EOF'
+#!/usr/bin/env bash
+if [ "${1:-}" = "pr" ] && [ "${2:-}" = "checks" ]; then
+  if [ -n "${FAKE_GH_ERR:-}" ]; then echo "$FAKE_GH_ERR"; exit 1; fi
+  echo "${FAKE_GH_CHECKS:-[]}"; exit 0
+fi
+exit 1
+EOF
+chmod +x "$FAKEBIN/gh"
+export PATH="$FAKEBIN:$PATH"
+
+PASS=0; FAIL=0
+# run_hook <hook> <project_dir|-> <cwd> <command>  -> sets OUT
+run_hook() {
+  local payload
+  payload=$(python -c 'import json,sys;print(json.dumps({"tool_input":{"command":sys.argv[1]}}))' "$4")
+  if [ "$2" = "-" ]; then
+    OUT=$(echo "$payload" | (cd "$3" && env -u CLAUDE_PROJECT_DIR bash "$H/$1" 2>&1))
+  else
+    OUT=$(echo "$payload" | (cd "$3" && CLAUDE_PROJECT_DIR="$2" bash "$H/$1" 2>&1))
+  fi
+}
+expect_allow() { # label
+  if [ -z "$OUT" ]; then PASS=$((PASS+1)); echo "ok    $1"
+  else FAIL=$((FAIL+1)); echo "FAIL  $1  (expected allow, got: ${OUT:0:110})"; fi
+}
+expect_deny() { # label [substring the reason must contain]
+  if echo "$OUT" | grep -q '"permissionDecision": "deny"' && { [ -z "${2:-}" ] || echo "$OUT" | grep -qF -- "$2"; }; then
+    PASS=$((PASS+1)); echo "ok    $1"
+  else FAIL=$((FAIL+1)); echo "FAIL  $1  (expected deny${2:+ containing '$2'}, got: ${OUT:0:110})"; fi
+}
+marker() { echo "$1" > "$T/.claude/workflow.json"; }
+
+echo "== opt-in gating: no workflow.json means inert"
+rm -f "$T/.claude/workflow.json"
+run_hook guard-repo-cwd.sh "$T" "$O" "git commit -m x";        expect_allow "cwd guard inert without marker"
+FAKE_GH_CHECKS='[{"name":"ci","bucket":"fail"}]' run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE"
+                                                               expect_allow "merge gate inert without marker (even with red CI)"
+run_hook guard-repo-cwd.sh - "$O" "git commit -m x";           expect_allow "inert when CLAUDE_PROJECT_DIR is unset"
+
+echo "== cwd guard (marker present)"
+marker '{"version":1,"components":{}}'
+run_hook guard-repo-cwd.sh "$T" "$T" "git commit -m x";        expect_allow "git commit inside the project"
+run_hook guard-repo-cwd.sh "$T" "$O" "git commit -m x";        expect_deny  "git commit from a different repo" "Blocked"
+run_hook guard-repo-cwd.sh "$T" "$O" "git push origin main";   expect_deny  "git push from a different repo"
+run_hook guard-repo-cwd.sh "$T" "$O" "git status";             expect_allow "read-only git elsewhere is fine"
+run_hook guard-repo-cwd.sh "$T" "$O" "ls -la";                 expect_allow "non-git command elsewhere"
+marker '{"version":1,"components":{"cwd_guard_hook":false}}'
+run_hook guard-repo-cwd.sh "$T" "$O" "git commit -m x";        expect_allow "cwd guard switched off per project"
+
+echo "== merge gate (marker present, fake gh)"
+marker '{"version":1,"components":{}}'
+run_hook block-merge-if-ci-red.sh "$T" "$T" "gh pr view 1";    expect_allow "unrelated gh command ignored"
+FAKE_GH_CHECKS='[{"name":"test","bucket":"pass"},{"name":"export","bucket":"pass"}]' \
+  run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";        expect_allow "all checks pass"
+FAKE_GH_CHECKS='[{"name":"test","bucket":"pass"},{"name":"lint","bucket":"skipping"}]' \
+  run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";        expect_allow "pass + skipping is green"
+FAKE_GH_CHECKS='[{"name":"test","bucket":"pass"},{"name":"export","bucket":"fail"}]' \
+  run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";        expect_deny  "one failing check blocks, and names it" "export: fail"
+FAKE_GH_CHECKS='[{"name":"test","bucket":"pending"}]' \
+  run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";        expect_deny  "pending CI blocks" "test: pending"
+FAKE_GH_CHECKS='[{"name":"test","bucket":"cancel"}]' \
+  run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";        expect_deny  "cancelled CI blocks" "test: cancel"
+FAKE_GH_ERR='no pull requests found' \
+  run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";        expect_deny  "unreadable CI fails closed" "could not read PR checks"
+FAKE_GH_CHECKS='not json at all' \
+  run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";        expect_deny  "garbage from gh fails closed"
+FAKE_GH_CHECKS='[{"name":"test","bucket":"fail"}]' \
+  run_hook block-merge-if-ci-red.sh "$T" "$T" "gh pr"" merge 7 --squash"; expect_deny "explicit PR number + flags still gated"
+marker '{"version":1,"components":{"merge_gate_hook":false}}'
+FAKE_GH_CHECKS='[{"name":"test","bucket":"fail"}]' \
+  run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";        expect_allow "merge gate switched off per project"
+
+rm -rf "$T" "$O" "$FAKEBIN"
+echo; echo "passed: $PASS   failed: $FAIL"
+[ "$FAIL" -eq 0 ]
