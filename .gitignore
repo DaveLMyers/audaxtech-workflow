@@ -1,0 +1,6 @@
+# Python bytecode from the hooks and generators
+__pycache__/
+*.pyc
+
+# Personal Claude Code settings; .claude/workflow.json is committed
+.claude/settings.local.json

@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "project": "audaxtech-workflow",
+  "kind": "tool",
+  "stack": null,
+  "identity": {
+    "github_owner": "DaveLMyers",
+    "default_visibility": "public"
+  },
+  "git": {
+    "merge_method": "squash",
+    "commit_convention": "conventional",
+    "branch_pattern": "{type}/{slug}",
+    "delete_branch_on_merge": true
+  },
+  "board": {
+    "enabled": true,
+    "owner": "DaveLMyers",
+    "number": 4,
+    "project_id": "PVT_kwHOAGjIOM4BnFh8",
+    "url": "https://github.com/users/DaveLMyers/projects/4",
+    "columns": {
+      "backlog": "Backlog",
+      "ready": "Ready",
+      "in_progress": "In Progress",
+      "in_review": "In Review",
+      "done": "Done"
+    },
+    "fields": {
+      "status": {
+        "id": "PVTSSF_lAHOAGjIOM4BnFh8zhlrwac",
+        "options": {
+          "backlog": "2924f90d",
+          "ready": "2f1d6169",
+          "in_progress": "16d7cb92",
+          "in_review": "84dfbd04",
+          "done": "1bf2fa9f"
+        }
+      },
+      "priority": {
+        "id": "PVTSSF_lAHOAGjIOM4BnFh8zhlrwhM",
+        "options": {
+          "P1": "859f7471",
+          "P2": "ba9db066",
+          "P3": "f8dc6f1b"
+        }
+      }
+    },
+    "title": "audaxtech-workflow backlog",
+    "priorities": [
+      "P1",
+      "P2",
+      "P3"
+    ]
+  },
+  "labels": {
+    "types": [
+      "feature",
+      "bug",
+      "chore",
+      "docs",
+      "research"
+    ],
+    "areas": [
+      "skills",
+      "hooks",
+      "agents",
+      "bootstrap"
+    ]
+  },
+  "review": {
+    "independent_review_required": true,
+    "default_effort": "medium"
+  },
+  "ci": {
+    "matrix": [
+      {
+        "name": "Linux",
+        "os": "ubuntu-latest"
+      },
+      {
+        "name": "macOS Apple Silicon",
+        "os": "macos-latest"
+      },
+      {
+        "name": "Windows",
+        "os": "windows-latest"
+      }
+    ]
+  },
+  "components": {
+    "issue_and_pr_templates": true,
+    "decisions_log": true,
+    "pr_check_skill": true,
+    "run_skill_and_toolchain": false,
+    "ci": true,
+    "merge_gate_hook": true,
+    "cwd_guard_hook": true,
+    "game_docs": false,
+    "cross_platform_habits": false,
+    "translatable_text": false
+  }
+}

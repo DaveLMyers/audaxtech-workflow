@@ -1,0 +1,36 @@
+name: Research / spike
+description: An investigation whose output is knowledge, not a shipped feature
+labels: ["type:research"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: The question
+      description: What do we need to find out?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it matters
+      description: What decision or piece of work is waiting on the answer?
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: What "done" looks like
+      description: The deliverable - usually a written finding (in an issue comment, DECISIONS.md, or design-ideas.md) and, if it leads somewhere, follow-up issues. Timebox it.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - area:skills
+        - area:hooks
+        - area:agents
+        - area:bootstrap
+    validations:
+      required: false

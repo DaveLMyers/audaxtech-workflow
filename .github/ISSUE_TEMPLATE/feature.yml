@@ -1,0 +1,39 @@
+name: Feature / task
+description: New functionality or work to implement
+labels: ["type:feature"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: What
+      description: The observable outcome, not the implementation mechanism.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: Context and motivation.
+    validations:
+      required: false
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: How do we know this is done?
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - area:skills
+        - area:hooks
+        - area:agents
+        - area:bootstrap
+    validations:
+      required: true
