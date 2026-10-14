@@ -1,8 +1,8 @@
 {
   "name": "audaxtech",
-  "description": "Audax Tech's Claude Code plugins.",
+  "description": "Dave L. Myers's Claude Code plugins.",
   "owner": {
-    "name": "Audax Tech"
+    "name": "Dave L. Myers"
   },
   "plugins": [
     {
