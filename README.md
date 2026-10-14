@@ -11,6 +11,7 @@ It encodes one opinionated way of working: every change is an issue on a board, 
 | `project-bootstrap` skill | Scaffolds a new repo's process: CONTRIBUTING, a DECISIONS log, issue/PR templates, a CI workflow, CLAUDE.md, and a GitHub Projects v2 board with columns, a priority field and labels. For a game it also adds the game docs (VISION, DESIGN, GAMEPLAY, HOW_TO_PLAY, a design-ideas log). |
 | Stack modules | Engine conventions, testing guidance, CI steps and ignore rules, picked at bootstrap. Today: `godot-gdscript`, with optional cross-platform and translatable-text rules (both on by default for games). |
 | `toolchain-run` skill | Generates a pinned, repo-local toolchain setup (version pin file, bash and PowerShell setup scripts, a `run` skill) so nobody installs the engine system-wide or hunts for it. Reuses an install you already have, but only if it is exactly the pinned version. |
+| `work-issue` skill | Takes an issue from Ready to ready-to-merge following the workflow, so "work issue #90" is the whole prompt: checks repo state, moves the board card, branches, implements with tests, lets you try it before anything is pushed, opens the PR, runs `pr-check`, and asks before merging. It never merges without an explicit yes. |
 | `pr-check` skill | The pre-merge checklist: it boots and tests the project, runs an independent review, checks docs, and for a game means actually playing the change. |
 | `blind-spec-reviewer` agent | Lists what should be tested, from the spec alone, never seeing the implementation. |
 | `test-saboteur` agent | Tries to build subtly wrong implementations the existing tests would still accept. |
@@ -30,6 +31,8 @@ Requires `bash`, `python` and `gh` (GitHub CLI, with the `project` scope for boa
 
 ## Use it
 
+Once a project is set up, say "work issue #N" and the `work-issue` skill runs the whole flow, stopping to ask before pushing and before merging.
+
 In a new or existing repo, ask Claude to bootstrap the project (or run `/audaxtech-workflow:project-bootstrap`). It asks what kind of project it is, then which engine, proposes the labels and board, and **asks once before touching GitHub** (creating the repo, board and labels). Local files are written first, so a failure in the board step leaves a working repo.
 
 A project opts in to the hooks by having `.claude/workflow.json`, which bootstrap writes. Delete it, or set a component to `false` in it, to switch a hook off for that one project.
@@ -46,7 +49,7 @@ Personal defaults (GitHub owner, merge method, board columns, CI matrix, compone
 
 This was extracted from two real Godot projects and then tested piece by piece.
 
-**Tested:** the hooks (45 cases, `tests/run-hook-tests.sh`, each fix sabotage-checked), the toolchain generator for both bash and PowerShell, including fresh install, version bump, bad pin, and reuse of an existing install by flag, env var and PATH (20 cases, `tests/run-toolchain-tests.sh`, which serves a fake tool from localhost), and the merge gate live in a real repository.
+**Tested:** the hooks (45 cases, `tests/run-hook-tests.sh`, each fix sabotage-checked), the `work-issue` helper scripts for board status and branch naming (26 cases against a fake `gh`, `tests/run-workissue-tests.sh`, plus a live read and write against a real board), the toolchain generator for both bash and PowerShell, including fresh install, version bump, bad pin, and reuse of an existing install by flag, env var and PATH (20 cases, `tests/run-toolchain-tests.sh`, which serves a fake tool from localhost), and the merge gate live in a real repository.
 
 **Not yet verified:**
 - the cwd guard triggered live (unit-tested only: a stale `cd` cannot be reproduced in the harness);
@@ -61,6 +64,7 @@ This was extracted from two real Godot projects and then tested piece by piece.
 ```
 bash tests/run-hook-tests.sh
 bash tests/run-toolchain-tests.sh
+bash tests/run-workissue-tests.sh
 claude plugin validate .
 ```
 Both test scripts are self-contained and clean up after themselves.

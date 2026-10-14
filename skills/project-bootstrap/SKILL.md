@@ -95,9 +95,14 @@ ones, adds Priority, creates labels, and prints all ids as JSON. It is **not
 idempotent for the board** - if it fails midway, run `gh project list --owner
 <owner>` and clean up/continue rather than re-running blind.
 
-Write the printed ids into CONTRIBUTING.md (`{{BOARD_URL}}`, `{{BOARD_NUMBER}}`,
-`{{PROJECT_ID}}`, `{{STATUS_FIELD_ID}}`, `{{OPT_*}}`, `{{PRIORITY_FIELD_ID}}`,
-`{{OPT_P1..3}}`). Never carry ids over from another project; they're per-board.
+The script prints the project's `board` block, **keyed by role** (`backlog`, `ready`,
+`in_progress`, `in_review`, `done`). Merge it into `.claude/workflow.json` as `board`
+(this is exactly what the `work-issue` skill's `board_status.py` reads, so do not
+reshape it), and use the same values for CONTRIBUTING.md: `{{BOARD_URL}}` = `url`,
+`{{BOARD_NUMBER}}` = `number`, `{{PROJECT_ID}}` = `project_id`, `{{STATUS_FIELD_ID}}` =
+`fields.status.id`, `{{OPT_BACKLOG}}`...`{{OPT_DONE}}` = `fields.status.options.<role>`,
+`{{PRIORITY_FIELD_ID}}` and `{{OPT_P1..3}}` = `fields.priority`. Never carry ids over
+from another project; they're per-board. Validate the file is still JSON afterwards.
 
 ### 5. Things only the user can do (say so plainly; the API can't)
 Projects v2 workflows can't be enabled via API. In the board's Settings ->

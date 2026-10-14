@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Creates a GitHub Projects v2 board with the standard columns, links it to a
-# repo, creates the standard labels, and prints every id a project needs for
-# scripting it as JSON on stdout (progress goes to stderr).
+# repo, creates the standard labels, and prints every id a project needs (in the shape .claude/workflow.json expects) for
+# scripting it as a JSON `board` block on stdout (progress goes to stderr).
 #
 # Usage: create-board.sh <owner> <repo> <board-title> "<area1,area2,...>"
 #
@@ -12,6 +12,7 @@
 # before re-running rather than creating a duplicate.
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OWNER="$1"; REPO="$2"; TITLE="$3"; AREAS="${4:-}"
 
 command -v gh >/dev/null || { echo "gh CLI not found" >&2; exit 1; }
@@ -66,12 +67,7 @@ for a in "${AREA_ARR[@]}"; do
   a="$(echo "$a" | xargs)"; [ -n "$a" ] && mk "area:$a" 5319e7 "System area: $a"
 done
 
-# Re-read fields (option ids only exist after the update above) and emit all
-# the ids as JSON so the caller can write them into CONTRIBUTING.md.
-gh project field-list "$NUM" --owner "$OWNER" --format json | python -c "
-import sys,json
-out={'owner':'$OWNER','number':$NUM,'project_id':'$PID','url':'https://github.com/users/$OWNER/projects/$NUM','fields':{}}
-for f in json.load(sys.stdin)['fields']:
-    if f['name'] in ('Status','Priority'):
-        out['fields'][f['name']]={'id':f['id'],'options':{o['name']:o['id'] for o in f.get('options',[])}}
-print(json.dumps(out,indent=2))"
+# Re-read fields (option ids only exist after the update above) and print the
+# `board` block for .claude/workflow.json: keyed by role, in the shape that the
+# work-issue skill's board_status.py reads. Merge it into workflow.json as "board".
+gh project field-list "$NUM" --owner "$OWNER" --format json | python "$SCRIPT_DIR/board_json.py" "$OWNER" "$NUM" "$PID"

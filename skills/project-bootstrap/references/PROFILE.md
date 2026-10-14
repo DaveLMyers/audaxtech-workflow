@@ -81,6 +81,24 @@ but its hooks do nothing in a project without this file, and each
 `components.<name>_hook: false` switches that hook off for just this project.
 Commit it - collaborators and CI see the same configuration.
 
+### The `board` block
+
+Written from `create-board.sh`'s output, keyed by **role** so instructions can say
+"move to `in_progress`" even if a project renames the column:
+
+```json
+"board": {
+  "enabled": true, "owner": "you", "number": 1, "project_id": "PVT_...",
+  "url": "https://github.com/users/you/projects/1",
+  "columns": { "backlog": "Backlog", "ready": "Ready", "in_progress": "In Progress",
+               "in_review": "In Review", "done": "Done" },
+  "fields": {
+    "status":   { "id": "PVTSSF_...", "options": { "backlog": "...", "ready": "...", "in_progress": "...", "in_review": "...", "done": "..." } },
+    "priority": { "id": "PVTSSF_...", "options": { "P1": "...", "P2": "...", "P3": "..." } }
+  }
+}
+```
+
 ## Deliberately NOT configurable (stated opinions, not options)
 
 Every change gets an issue; PRs reference the issue they close; a PR is not
