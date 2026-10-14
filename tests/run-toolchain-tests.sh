@@ -5,8 +5,8 @@
 # throwaway localhost server, never touches the internet or a real install.
 #
 # Usage: bash tests/run-toolchain-tests.sh      (exit 0 = all passed)
-# Needs: bash, python, curl, unzip, tar. The PowerShell half runs only where
-# powershell.exe exists (Windows / Git Bash).
+# Needs: bash, python, curl, unzip, tar. The PowerShell half runs only on
+# Windows under Git Bash (powershell and cygpath both present).
 set -u
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -95,7 +95,9 @@ echo "$out" | grep -q "ignoring it" && echo "$out" | grep -q Downloading && [ $r
 fresh; out=$(SETUP_PLATFORM=linux PATH="$POSIX_W/pathbad:$PATH" bash proj/tools/setup-hello.sh 2>&1); rc=$?
 echo "$out" | grep -q "ignoring it" && [ $rc -eq 0 ] && [ "$(proj/.hello-bin/hello --version)" = "hello 1.2.3" ]; chk "PATH tool, WRONG version: ignored, pinned download used" $? "rc=$rc $out"
 
-if command -v powershell >/dev/null 2>&1; then
+# The PowerShell half drives Windows paths (cygpath) and .cmd launchers (cmd), so it
+# needs Git Bash on Windows; a `powershell`/pwsh on macOS or Linux is not enough.
+if command -v powershell >/dev/null 2>&1 && command -v cygpath >/dev/null 2>&1; then
   echo "== PowerShell"
   PS="powershell -NoProfile -ExecutionPolicy Bypass -File"
   mkdir -p inst_ok_win/hello-1.2.3 inst_bad_win/hello-9.9.9
@@ -110,7 +112,7 @@ if command -v powershell >/dev/null 2>&1; then
   echo "$out" | grep -q "ignoring it" && [ $rc -eq 0 ]; chk "ps1 env var, WRONG version: ignored, falls back to download" $? "rc=$rc ${out:0:200}"
   out=$($PS proj/tools/setup-hello.ps1 2>&1); echo "$out" | grep -q "already set up"; chk "ps1 re-run is idempotent" $? "${out:0:200}"
 else
-  echo "(powershell not found: skipping the PowerShell half)"
+  echo "(Windows PowerShell + cygpath not found: skipping the PowerShell half)"
 fi
 
 echo; echo "passed: $PASS   failed: $FAIL"
