@@ -44,8 +44,9 @@ for a clear yes before any of them:
 > I'll (a) create GitHub repo `owner/name` (private) *[only if none exists]*,
 > (b) create Projects board "<Name>" under `owner` and link it to the repo,
 > (c) set its Status columns (Backlog/Ready/In Progress/In Review/Done) and
-> a Priority field (P1/P2/P3), (d) create labels `type:*`, `priority:*`,
-> `area:<...>`. Nothing is pushed or committed until you say so.
+> a Priority field (P1/P2/P3), (d) add a "Prioritized backlog" board view
+> (columns by Status) and rename the default view "Table", (e) create labels
+> `type:*`, `priority:*`, `area:<...>`. Nothing is pushed or committed until you say so.
 The user may decline the board ("no board") - then skip step 4 and render
 CONTRIBUTING.md without the board sections. Approval covers exactly what was
 listed; anything else (pushing, extra repos) needs its own ask.
@@ -91,7 +92,11 @@ bash <this skill's base directory>/scripts/create-board.sh \
 ```
 The repo must already exist on GitHub (labels need it). The script creates the
 board, links it, replaces the default Status options with the five standard
-ones, adds Priority, creates labels, and prints all ids as JSON. It is **not
+ones, adds Priority, adds a "Prioritized backlog" board view (columns by Status;
+Title, Assignees, Labels, Priority shown) and renames the default view "Table",
+creates labels, and prints all ids as JSON. The views are best-effort: if that call
+fails the script warns on stderr and carries on, and the user can add the view in the
+board UI. It is **not
 idempotent for the board** - if it fails midway, run `gh project list --owner
 <owner>` and clean up/continue rather than re-running blind.
 

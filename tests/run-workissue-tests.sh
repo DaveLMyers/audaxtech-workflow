@@ -151,5 +151,64 @@ reset; touch "$W/onboard"
 out="$(bs 7 in_progress)"; rc=$?
 [ $rc -eq 0 ] && [ "$out" = "#7 -> In Progress" ] && ok "a workflow.json built from bootstrap's output works with board_status.py end to end" || bad "roundtrip" "rc=$rc $out"
 
+echo "== create-board.sh saved views (fake gh)"
+CB="$HERE/../skills/project-bootstrap/scripts/create-board.sh"
+mkdir -p "$W/cbbin"
+cat > "$W/cbbin/gh" <<'GHEOF'
+#!/usr/bin/env bash
+exec python "$FAKE_CB_PY" "$@"
+GHEOF
+chmod +x "$W/cbbin/gh"
+cat > "$W/fake_cb.py" <<'PYEOF3'
+import json, os, sys
+args = sys.argv[1:]
+open(os.environ["FAKE_CB_LOG"], "a").write(" ".join(args) + "\n")
+joined = " ".join(args)
+fail = os.environ.get("FAKE_CB_FAIL", "")
+def out(s=""): print(s); sys.exit(0)
+if args[:2] == ["auth", "status"]: out("token scopes: 'project', 'repo'")
+if args[:2] == ["project", "create"]: out(json.dumps({"number": 9, "id": "PVT_new"}))
+if args[:2] == ["project", "field-list"]:
+    out(json.dumps({"fields": [
+        {"id": "F_title", "name": "Title"}, {"id": "F_assign", "name": "Assignees"}, {"id": "F_labels", "name": "Labels"},
+        {"id": "PVTSSF_status", "name": "Status", "options": [{"id": "O1", "name": "Backlog"}, {"id": "O2", "name": "Ready"},
+            {"id": "O3", "name": "In Progress"}, {"id": "O4", "name": "In Review"}, {"id": "O5", "name": "Done"}]},
+        {"id": "F_prio", "name": "Priority", "options": [{"id": "P1", "name": "P1"}, {"id": "P2", "name": "P2"}, {"id": "P3", "name": "P3"}]}]}))
+if args[:2] == ["api", "graphql"]:
+    if "views(first" in joined:
+        out(json.dumps({"data": {"node": {"views": {"nodes": [{"id": "V_default", "name": "View 1", "layout": "TABLE_LAYOUT"}]}}}}))
+    if "createProjectV2View" in joined:
+        if fail == "create": print("boom", file=sys.stderr); sys.exit(1)
+        out("{}")
+    if "updateProjectV2View" in joined:
+        if fail == "rename": print("boom", file=sys.stderr); sys.exit(1)
+        out("{}")
+    out("{}")
+out()
+PYEOF3
+runcb() {  # $1 = failure mode (or empty); sets CBOUT (stdout), CBERR (stderr), CBRC
+  : > "$W/cb.log"
+  CBOUT="$(FAKE_CB_PY="$W/fake_cb.py" FAKE_CB_LOG="$W/cb.log" FAKE_CB_FAIL="$1" PATH="$W/cbbin:$PATH" bash "$CB" me demo "Demo board" "core" 2>"$W/cb.err")"; CBRC=$?
+  CBERR="$(cat "$W/cb.err")"
+}
+isjson() { python -c 'import sys,json;json.load(sys.stdin)' >/dev/null 2>&1; }
+runcb ""
+CALLS="$(cat "$W/cb.log")"
+[ $CBRC -eq 0 ] && echo "$CALLS" | grep -q "createProjectV2View" && echo "$CALLS" | grep -q "BOARD_LAYOUT" && echo "$CALLS" | grep -q 'name:"Prioritized backlog"' \
+  && ok "creates a 'Prioritized backlog' board-layout view" || bad "view created" "rc=$CBRC $CALLS $CBERR"
+for f in F_title F_assign F_labels F_prio; do echo "$CALLS" | grep -q "ids\[\]=$f" || bad "visible field $f passed" "$CALLS"; done
+echo "$CALLS" | grep -q "ids\[\]=PVTSSF_status" && bad "Status must not be a visible field" "$CALLS" || ok "visible fields are Title, Assignees, Labels, Priority (not Status)"
+echo "$CALLS" | grep -q "updateProjectV2View" && echo "$CALLS" | grep -q "v=V_default" && ok "renames the default table view to 'Table'" || bad "rename" "$CALLS"
+FC="$(echo "$CALLS" | grep -n 'field-create' | head -1 | cut -d: -f1)"; VC="$(echo "$CALLS" | grep -n 'createProjectV2View' | head -1 | cut -d: -f1)"
+[ -n "$FC" ] && [ -n "$VC" ] && [ "$FC" -lt "$VC" ] && ok "the view is created after the Priority field" || bad "ordering" "field-create line '$FC', view line '$VC'"
+echo "$CBOUT" | isjson && ok "board JSON is printed on stdout" || bad "board json" "$CBOUT"
+runcb create
+echo "$CBERR" | grep -q "could not create the 'Prioritized backlog' view" && [ $CBRC -eq 0 ] && echo "$CBOUT" | isjson \
+  && ok "a failing view creation warns, is non-fatal, and the board JSON is still printed" || bad "create failure" "rc=$CBRC $CBERR"
+grep -q "label create" "$W/cb.log" && ok "labels are still created after a view failure" || bad "labels after failure" "$(cat "$W/cb.log")"
+runcb rename
+echo "$CBERR" | grep -q "could not rename the default view" && [ $CBRC -eq 0 ] && ! echo "$CBERR" | grep -q "could not create" && echo "$CBOUT" | isjson \
+  && ok "a failing rename only warns about the rename" || bad "rename failure" "rc=$CBRC $CBERR"
+
 echo; echo "passed: $PASS   failed: $FAIL"
 [ "$FAIL" -eq 0 ]
