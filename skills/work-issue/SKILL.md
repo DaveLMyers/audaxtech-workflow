@@ -56,8 +56,9 @@ skill's base directory (`scripts/`).
 - Logic with branching or edge cases gets tests in the same change; prefer a pure
   function. Run the suite and the boot/import check using the project's `run` skill.
 - Commits: Conventional Commits, scope from the area label, reference `(#N)`, small
-  and logical, with the attribution trailer the environment specifies. Never commit
-  to the base branch; never force-push.
+  and logical, with the attribution trailer the environment specifies. **Stage files by
+  name** (`git add <paths>`), not `git add -A`, so nothing unintended is included. Never
+  commit to the base branch; never force-push.
 - Apply the docs rules the issue and CONTRIBUTING state (a DECISIONS entry for a
   judgment call, and so on).
 - Something out of scope turns up: note it and file it as its own issue; fix it
@@ -73,6 +74,17 @@ Either way, **ask before pushing.** Do not decide a change is too simple to need
 the ask. If the user says to skip playing and push, do that.
 
 ## 5. Open the PR
+- **Run each git step as its own simple command**: `git add <paths>`, then
+  `git commit -F <message-file>`, then `git push -u origin <branch>`. Never chain them, and
+  never bundle them with reads such as fetching the PR template: a compound command is
+  harder for a permission layer to judge and harder for the user to approve.
+- **If the permission layer blocks a step** (for example an auto-mode classifier denial
+  that gives no reason), that is not this plugin: its hooks always say why they denied.
+  Stop. State exactly which command was blocked and that nothing ran, give the user the
+  exact commands to approve or run themselves, and wait. Do not retry variants, do not
+  route around it (another tool, a script, a different shell), and do not change
+  permission settings yourself. The user's yes at Gate 1 is not seen by the permission
+  layer, so a push can still be refused after it.
 - Push with `-u`. Write the **PR body to a file** (never inline in a shell command:
   backticks and quotes get eaten, and the merge-gate hook reads command text). Use the
   repo's PR template: what changed, why (`Closes #N`), how it was verified (be
@@ -104,7 +116,7 @@ in an earlier turn, or for a different PR, is not a yes for this one.
 
 ## Never
 Merge without an explicit yes. Push to or commit on the base branch. Force-push.
-Skip Gate 1. Touch another issue's card. Change repo settings. Delete a branch you
+Skip Gate 1. Work around a permission block. Touch another issue's card. Change repo settings. Delete a branch you
 did not create. Leave a `cd` into another repo (use `git -C`).
 
 ## Sharp edges, learned from real incidents
@@ -113,4 +125,5 @@ did not create. Leave a `cd` into another repo (use `git -C`).
 - A JSON file you edit (`workflow.json`) must stay valid: a typo once silently
   disabled the hooks. Validate it after any edit.
 - Windows LF/CRLF warnings are noise. Stale remote-tracking refs are not remote branches.
+- Several sessions can share one working folder: whichever branch is checked out is what every session in it sees, and uncommitted work belongs to the session that made it. Never touch another session's branch or changes.
 - Without `.claude/workflow.json`, skip the board steps, say so, and rely on CONTRIBUTING.md.
