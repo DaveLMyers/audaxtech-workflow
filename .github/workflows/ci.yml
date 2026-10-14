@@ -49,3 +49,6 @@ jobs:
       - name: work-issue helper tests
         shell: bash
         run: bash tests/run-workissue-tests.sh
+      - name: project-bootstrap upgrade-check tests
+        shell: bash
+        run: bash tests/run-bootstrap-tests.sh

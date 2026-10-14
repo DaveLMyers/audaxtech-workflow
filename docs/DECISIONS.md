@@ -39,3 +39,15 @@ need renegotiating when collaborators join.
 **Why:** An unverified claim of cross-platform support was the README's biggest open item, and a gate that blocks every merge on a platform is worse than none. Not required by Claude Code: the watchdog costs ~15 lines but avoids a hard dependency on coreutils.
 
 **Related:** PR #9, issue #8
+
+---
+
+## 2026-10-14 - Upgrade mode is a read-only check plus owner-approved additions
+
+**Context:** Older repos (critter-wars before its docs were added) drift from the templates, and issue #3 asked for an upgrade mode that never overwrites anything.
+
+**Decision:** `project-bootstrap` upgrade mode starts with `scripts/upgrade_check.py`, a read-only report of what is missing, and the skill then asks which pieces to add and appends only those. A missing section or line is appended to the existing file; existing content is never rewritten, even where it differs from the template.
+
+**Why:** The risky part is deciding what is missing, so that is a testable script run against throwaway repos. Writing stays with the skill, where the owner is asked first.
+
+**Related:** #3

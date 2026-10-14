@@ -1,6 +1,6 @@
 ---
 name: project-bootstrap
-description: Scaffolds the full working process for a new project - CONTRIBUTING.md, DECISIONS.md log, issue/PR templates, CI skeleton, a short CLAUDE.md, a `.claude/workflow.json` marker that switches on the audaxtech-workflow plugin's hooks and pr-check for the project, plus a GitHub Projects v2 board with standard columns, Priority field and labels. Games are the default and best-supported kind; other kinds work too. Use when the user is starting a new project/repo or wants the standard workflow set up in an existing one. Triggers on "new project," "start a project," "bootstrap," "scaffold the repo/process," "set up the workflow/board for this project."
+description: Scaffolds the full working process for a new project - CONTRIBUTING.md, DECISIONS.md log, issue/PR templates, CI skeleton, a short CLAUDE.md, a `.claude/workflow.json` marker that switches on the audaxtech-workflow plugin's hooks and pr-check for the project, plus a GitHub Projects v2 board with standard columns, Priority field and labels. Games are the default and best-supported kind; other kinds work too. Use when the user is starting a new project/repo or wants the standard workflow set up in an existing one, or an older repo brought up to date with what the templates now provide (upgrade mode). Triggers on "new project," "start a project," "bootstrap," "scaffold the repo/process," "set up the workflow/board for this project."
 ---
 
 # Project bootstrap
@@ -124,6 +124,32 @@ scheduled reconciliation routine that diffs issue/PR state against the board.
 - Offer to file the first issues on the new board (via `github-projects-workflow`
   patterns: create, then `gh project item-add`, then set Status).
 - Report plainly what was created, what was skipped, and the manual steps left.
+
+## Upgrade mode (a repo that already has some of this)
+
+For a repo that predates a template or was bootstrapped by an older version
+(for example one with `docs/` holding only DECISIONS, DESIGN, GAMEPLAY and
+HOW_TO_PLAY, and no `design-ideas.md`). Use it when the user asks to bring a
+repo up to date, or when a session in such a repo finds the convention missing.
+
+1. **Look, change nothing.** Run
+   `python <this skill's base directory>/scripts/upgrade_check.py <repo> [--kind <kind>]`.
+   It is read-only. It reads `.claude/workflow.json` for the kind and components
+   (else `--kind`, else it assumes `game` and says so) and lists what is missing:
+   whole files, the "Game-specific process" section of CONTRIBUTING.md, and the
+   CLAUDE.md line that points stray design ideas at `docs/design-ideas.md`.
+2. **Show the user the report and ask which pieces to add.** Anything the repo
+   already has is left alone, even if it differs from the template: the repo's
+   own wording wins.
+3. **Add only what was approved, and only what is missing.** A missing file is
+   rendered from its template (step 2 of the order above). A missing section or
+   line is *appended* to the existing file (`kinds/game/contributing-extra.md` to
+   CONTRIBUTING.md, `kinds/game/claude-extra.md` to CLAUDE.md); never rewrite or
+   reorder existing content. Match the file's line endings. Show the diff first.
+4. **GitHub-side pieces** (board, labels) are not part of an upgrade unless the
+   user asks; the step 1 confirmation rule still applies if they do.
+5. Do not commit or push without asking; propose a branch such as
+   `chore/bootstrap-upgrade`.
 
 ## Notes / known limits
 - Hooks assume `bash` and `python` on PATH (true under Git Bash on Windows).

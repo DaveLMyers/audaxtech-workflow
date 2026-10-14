@@ -17,7 +17,7 @@ loads into every session) - only what's worth knowing before doing anything.
   `pr-check` skill (from the audaxtech-workflow plugin). Standing step.
 - **This is a tool, not a game.** There are no game docs. Tests live in
   `tests/` (`bash tests/run-hook-tests.sh`, `run-toolchain-tests.sh`,
-  `run-workissue-tests.sh`) and must pass before a PR is ready.
+  `run-workissue-tests.sh`, `run-bootstrap-tests.sh`) and must pass before a PR is ready.
 - **This repo uses its own workflow.** The plugin's hooks are live here
   because `.claude/workflow.json` exists. Don't edit `hooks/` or the skills
   from a cached plugin copy under `~/.claude/plugins`; change this repo.

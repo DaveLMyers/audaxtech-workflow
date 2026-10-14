@@ -102,7 +102,7 @@ and usually matches an `area:` label.
   values, comments.
 - Before calling any PR ready to merge, run the `pr-check` skill (from the
   audaxtech-workflow plugin; it reads `.claude/workflow.json` and this file).
-- CI (`.github/workflows/ci.yml`) runs the three suites in `tests/` on Linux,
+- CI (`.github/workflows/ci.yml`) runs the four suites in `tests/` on Linux,
   macOS and Windows for every PR and push to `main`. It is not yet configured
   as a *required* check in GitHub, so a red run is a hard "don't merge" on the
   honor system; this repo uses its own plugin's merge-gate hook (active
@@ -118,11 +118,12 @@ and usually matches an `area:` label.
 bash tests/run-hook-tests.sh        # the merge gate and cwd guard (fake gh, throwaway repos)
 bash tests/run-toolchain-tests.sh   # the toolchain-run generator (fake tool served from localhost)
 bash tests/run-workissue-tests.sh   # work-issue's helper scripts (fake gh)
+bash tests/run-bootstrap-tests.sh   # project-bootstrap's upgrade check (throwaway repos)
 claude plugin validate .            # manifest and layout
 ```
 
 The suites are self-contained and clean up after themselves; CI runs the
-three scripts on every OS. A change to a hook, a generator or a helper script
+four scripts on every OS. A change to a hook, a generator or a helper script
 needs a case in the matching suite in the same PR. Skills, agents and
 templates are prose: they are verified by actually using them (bootstrap a
 scratch repo, run `work-issue` on a scratch issue), and the PR says what was
@@ -142,7 +143,7 @@ tried.
 
 ## Definition of done
 
-Merged to `main`; the three test suites pass and `claude plugin validate .` is clean; tests pass and cover what the
+Merged to `main`; the four test suites pass and `claude plugin validate .` is clean; tests pass and cover what the
 change added; an independent review was run and its findings addressed or
 explicitly deferred; the linked issue's acceptance criteria are met. "Done"
 does not require polish beyond what the issue asked for - track follow-up
