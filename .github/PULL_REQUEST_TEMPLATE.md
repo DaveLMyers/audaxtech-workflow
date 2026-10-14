@@ -13,7 +13,7 @@
 
 ## Checklist
 
-- [ ] `bash tests/run-hook-tests.sh`, `run-toolchain-tests.sh`, `run-workissue-tests.sh` and `run-bootstrap-tests.sh` pass, and `claude plugin validate .` is clean
+- [ ] `bash tests/run-hook-tests.sh`, `run-toolchain-tests.sh`, `run-workissue-tests.sh`, `run-bootstrap-tests.sh` and `run-saferm-tests.sh` pass, and `claude plugin validate .` is clean
 - [ ] Matches the linked issue's acceptance criteria
 - [ ] Tests added/updated for any real logic
 - [ ] Self-reviewed the diff; independent review run (see pr-check)

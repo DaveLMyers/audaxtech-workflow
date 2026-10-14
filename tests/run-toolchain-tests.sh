@@ -10,8 +10,9 @@
 set -u
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$HERE/_safe_rm.sh"
 RENDER="$HERE/../skills/toolchain-run/scripts/render.py"
-W="$(mktemp -d)"; cd "$W" || exit 1
+W="$(mktemp -d)"; safe_rm_allow "$W"; cd "$W" || exit 1
 PORT=8771
 PASS=0; FAIL=0
 ok()  { PASS=$((PASS+1)); echo "ok    $1"; }
@@ -20,7 +21,7 @@ chk() { [ "$2" -eq 0 ] && ok "$1" || bad "$1" "$3"; }
 # The server is a tiny Python script that exits when a "stop" file appears (or
 # after 4 minutes regardless): `kill` on a Git Bash background job does not
 # reliably reach a native Windows Python process, and a leaked server is not OK.
-cleanup() { touch "$W/stop" 2>/dev/null; sleep 1.5; cd /; rm -rf "$W"; }
+cleanup() { touch "$W/stop" 2>/dev/null; sleep 1.5; cd /; safe_rm -r "$W"; }
 trap cleanup EXIT
 
 # ---- fake tool, two versions, both archive types --------------------------
@@ -42,7 +43,7 @@ json.dump({"tool":"Hello","name":"hello","project":"Demo","version":"1.2.3","pin
   "commands":[{"title":"Say hello","cmd":"{bin} --version"}]}, open("hello.spec.json","w"), indent=1)
 EOF
 
-fresh() { rm -rf proj && mkdir proj && python "$RENDER" hello.spec.json proj >/dev/null || bad "render" "render.py failed"; echo 1.2.3 > proj/.hello-version; }
+fresh() { safe_rm -r proj && mkdir proj && python "$RENDER" hello.spec.json proj >/dev/null || bad "render" "render.py failed"; echo 1.2.3 > proj/.hello-version; }
 fake_unix() { mkdir -p "$1/hello-$2"; printf '#!/bin/sh\necho "hello %s"\n' "$2" > "$1/hello-$2/hello"; chmod +x "$1/hello-$2/hello"; }
 INST_OK="$W/inst_ok"; INST_BAD="$W/inst_bad"; fake_unix "$INST_OK" 1.2.3; fake_unix "$INST_BAD" 9.9.9
 mkdir -p pathok pathbad; cp "$INST_OK/hello-1.2.3/hello" pathok/hello; cp "$INST_BAD/hello-9.9.9/hello" pathbad/hello

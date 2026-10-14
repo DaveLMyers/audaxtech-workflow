@@ -39,7 +39,7 @@ A project opts in to the hooks by having `.claude/workflow.json`, which bootstra
 
 ## Kinds and stacks
 
-- **Kind** is what the project is: `game` (the default), `web`, `library` or `other`. It chooses the area-label preset and the kind-specific docs and process sections.
+- **Kind** is what the project is: `game` (the default), `web`, `library`, `tool` or `other`. It chooses the area-label preset and the kind-specific docs and process sections.
 - **Stack** is the engine or language: `godot-gdscript` today. It supplies conventions, testing guidance, CI steps and `.gitignore` lines.
 - Add a stack by adding a folder under `skills/project-bootstrap/templates/stacks/` with a `stack.json`. Nothing is invented for an engine that has no stack: bootstrap falls back to generic text and says so.
 
@@ -49,7 +49,7 @@ Personal defaults (GitHub owner, merge method, board columns, CI matrix, compone
 
 This was extracted from two real Godot projects and then tested piece by piece.
 
-**Tested:** the hooks (45 cases, `tests/run-hook-tests.sh`, each fix sabotage-checked), the `work-issue` helper scripts for board status and branch naming (34 cases against a fake `gh`, including `create-board.sh`'s saved views, `tests/run-workissue-tests.sh`, plus a live read and write against a real board), the upgrade check for older repos (16 cases against throwaway repos, including the older layout from issue #3, `tests/run-bootstrap-tests.sh`), the toolchain generator for both bash and PowerShell, including fresh install, version bump, bad pin, and reuse of an existing install by flag, env var and PATH (20 cases, `tests/run-toolchain-tests.sh`, which serves a fake tool from localhost), and the merge gate live in a real repository.
+**Tested:** the hooks (65 cases, `tests/run-hook-tests.sh`, each fix sabotage-checked), the `work-issue` helper scripts for board status and branch naming (34 cases against a fake `gh`, including `create-board.sh`'s saved views, `tests/run-workissue-tests.sh`, plus a live read and write against a real board), the upgrade check for older repos (39 cases against throwaway repos, including the older layout from issue #3, `tests/run-bootstrap-tests.sh`), the delete guard the suites use (`tests/_safe_rm.sh`, 21 cases, `tests/run-saferm-tests.sh`), the toolchain generator for both bash and PowerShell, including fresh install, version bump, bad pin, and reuse of an existing install by flag, env var and PATH (20 cases, `tests/run-toolchain-tests.sh`, which serves a fake tool from localhost), and the merge gate live in a real repository.
 
 **Not yet verified:**
 - `create-board.sh`'s view step against a live board end to end (the `createProjectV2View` call was used by hand on a real board; the "Table" rename via `updateProjectV2View` has only run against the fake `gh`);
@@ -67,6 +67,7 @@ bash tests/run-hook-tests.sh
 bash tests/run-toolchain-tests.sh
 bash tests/run-workissue-tests.sh
 bash tests/run-bootstrap-tests.sh
+bash tests/run-saferm-tests.sh
 claude plugin validate .
 ```
 Both test scripts are self-contained and clean up after themselves.

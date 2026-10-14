@@ -51,3 +51,15 @@ need renegotiating when collaborators join.
 **Why:** The risky part is deciding what is missing, so that is a testable script run against throwaway repos. Writing stays with the skill, where the owner is asked first.
 
 **Related:** #3
+
+---
+
+## 2026-10-14 - Test suites delete only through a guard
+
+**Context:** While working #3, a helper in a new test suite ran `rm -rf` on relative paths before it had changed into its throwaway repo, and deleted tracked files from the real working tree on every test run. Nothing was lost (git restored them), but it would have been easy to lose uncommitted work.
+
+**Decision:** Every delete in `tests/` goes through `safe_rm` (`tests/_safe_rm.sh`), which resolves the path and refuses anything outside the throwaway folders the suite registered with `safe_rm_allow`. The guard has its own suite.
+
+**Why:** A structural check beats remembering to pin the working directory. Deleting inside temp folders stays possible, because the suites need it to clean up.
+
+**Related:** PR #14
