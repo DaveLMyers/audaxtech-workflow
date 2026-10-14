@@ -13,7 +13,7 @@
 
 ## Screenshots / clip
 
-<!-- For anything visual - required if this touches rendering or UI. Delete if not applicable. -->
+<!-- For anything visual - required if this touches rendering, UI, or feel. Delete if not applicable. -->
 
 ## Checklist
 

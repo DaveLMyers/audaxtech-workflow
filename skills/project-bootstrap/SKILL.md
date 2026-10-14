@@ -1,6 +1,6 @@
 ---
 name: project-bootstrap
-description: Scaffolds the full working process for a new project - CONTRIBUTING.md, DECISIONS.md log, issue/PR templates, CI skeleton, a short CLAUDE.md, a `.claude/workflow.json` marker that switches on the audaxtech-workflow plugin's hooks and pr-check for the project, plus a GitHub Projects v2 board with standard columns, Priority field and labels. Use when the user is starting a new project/repo (of any kind) or wants the standard workflow set up in an existing one. Triggers on "new project," "start a project," "bootstrap," "scaffold the repo/process," "set up the workflow/board for this project."
+description: Scaffolds the full working process for a new project - CONTRIBUTING.md, DECISIONS.md log, issue/PR templates, CI skeleton, a short CLAUDE.md, a `.claude/workflow.json` marker that switches on the audaxtech-workflow plugin's hooks and pr-check for the project, plus a GitHub Projects v2 board with standard columns, Priority field and labels. Games are the default and best-supported kind; other kinds work too. Use when the user is starting a new project/repo or wants the standard workflow set up in an existing one. Triggers on "new project," "start a project," "bootstrap," "scaffold the repo/process," "set up the workflow/board for this project."
 ---
 
 # Project bootstrap
@@ -31,6 +31,7 @@ user's account). A failure in the board step must leave a working repo.
 
 ### 1. Interview (one batch of questions, then a single confirmation)
 Ask only what you can't infer from the directory:
+- **Kind first:** is this a game (the default), a web app, a library, or something else? Then, for a game, which engine (Godot, Unity, ...). The kind picks the area preset and the kind-specific templates below; the engine picks the toolchain and conventions.
 - Project name, one-line description, GitHub owner/repo name, public/private.
 - Stack and the real commands to build, test, run (drives CI steps, the
   Testing section, and the `run` step of `pr-check`).
@@ -60,6 +61,7 @@ From `templates/`:
 | `github/PULL_REQUEST_TEMPLATE.md` | `.github/PULL_REQUEST_TEMPLATE.md` |
 | `github/ISSUE_TEMPLATE/*.yml` | `.github/ISSUE_TEMPLATE/` (expand `{{AREA_OPTIONS}}` into lines like `        - area:ui`) |
 | `github/workflows/ci.yml.tmpl` | `.github/workflows/ci.yml` |
+| `kinds/<kind>/*` | Kind-specific additions. For `game` (when `components.game_docs` is on): `DESIGN.md`, `GAMEPLAY.md`, `HOW_TO_PLAY.md` into `docs/`, and `contributing-extra.md` appended to CONTRIBUTING.md via `{{EXTRA_SECTIONS}}` (fill `{{ENGINE_CONVENTIONS}}` with the engine's real conventions from the interview, or a short placeholder note if none are known yet). No `kinds/<kind>/` folder = nothing extra. |
 | *(generated, no template)* | `.claude/workflow.json` - the resolved config (see `references/PROFILE.md`). **Its presence is what turns the plugin's hooks on for this project**, and `components.*` switches them individually. Hooks and `pr-check` are NOT copied into the repo; the plugin owns them. |
 
 Fill the stack-specific placeholders with real content, not stubs:

@@ -41,8 +41,8 @@ red run is a "don't merge"; the plugin's merge hook enforces this for
 
 ### 2. Tests pass, and test the right thing
 Run the suite. Then decide whether the change has **meaningfully complex
-logic** (real branching, an algorithm, rules that interact, math, pricing/
-scheduling/selection logic - not a getter or glue code). If it does, and the
+logic** (real branching, an algorithm, rules that interact, math, spawn/
+scoring/selection logic, game rules - not a getter or glue code). If it does, and the
 implementation and its tests were written by the same author (you, in most
 cases), run the blind check:
 
@@ -74,7 +74,10 @@ something, say why in the issue and in a code comment at the site.
 
 ### 4. Verified live, not just read
 For anything user-facing, actually run and exercise it - click it, call it,
-read its output - rather than reasoning from the code. Reading proves what you
+read its output - rather than reasoning from the code. **For a game, that means
+playing it**: launch the real game and exercise the change (aim it, click it,
+watch what happens); input handling, rendering and game feel routinely look
+right in code and are wrong on screen. Reading proves what you
 intended; running proves what happens. Where a human could sanity-check it
 hands-on, **ask whether they want to verify it first** before push/merge. Don't
 self-exempt a change from that ask because it looks simple.

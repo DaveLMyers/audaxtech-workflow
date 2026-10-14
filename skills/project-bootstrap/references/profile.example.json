@@ -1,6 +1,8 @@
 {
   "version": 1,
 
+  "kind": "game",
+
   "identity": {
     "github_owner": "your-github-login",
     "default_visibility": "private"
@@ -29,9 +31,10 @@
   "labels": {
     "types": ["feature", "bug", "chore", "docs"],
     "area_presets": {
-      "default": ["core", "ui", "build"],
+      "game": ["gameplay", "ui", "audio", "build"],
       "web": ["frontend", "api", "data", "build"],
-      "library": ["core", "docs", "build"]
+      "library": ["core", "docs", "build"],
+      "other": ["core", "ui", "build"]
     }
   },
 
@@ -46,6 +49,7 @@
 
   "components": {
     "issue_and_pr_templates": true,
+    "game_docs": true,
     "decisions_log": true,
     "pr_check_skill": true,
     "run_skill_and_toolchain": true,

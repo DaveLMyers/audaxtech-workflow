@@ -24,6 +24,7 @@ bootstrap time.
 
 | Key | Default | Notes |
 |---|---|---|
+| `kind` | `game` | The project kind: `game` (the default and best-supported path), `web`, `library`, or `other`. Drives the area preset and which kind-specific templates and process sections are added (see `templates/kinds/<kind>/`). Asked first in the interview. |
 | `identity.github_owner` | asked | Never guessed from the machine. |
 | `identity.default_visibility` | `private` | Applies when the skill creates the repo. |
 | `git.merge_method` | `squash` | `squash` \| `merge` \| `rebase`. Drives CONTRIBUTING text and repo settings. |
@@ -35,7 +36,7 @@ bootstrap time.
 | `board.columns` | the five shown | **Roles -> display names.** Instructions reference roles ("move to in_progress"); only the board shows the display name. All five roles are required; rename freely. |
 | `board.priorities` | `P1,P2,P3` | Also creates matching `priority:` labels. |
 | `labels.types` | feature,bug,chore,docs | Add e.g. `research`. Each gets a `type:` label and issue-template support. |
-| `labels.area_presets` | default, web, library (examples; add your own) | Picked by project kind, then edited in the interview. |
+| `labels.area_presets` | `game`, `web`, `library`, `other` | Keyed by `kind`; the matching preset is proposed, then edited in the interview. Add your own kinds. |
 | `review.independent_review_required` | `true` | Governs the CONTRIBUTING "standing step" wording and pr-check step 3. |
 | `review.default_effort` | `medium` | Starting point for the effort-calibration guidance. |
 | `ci.os` | `["ubuntu-latest"]` | A list of runners; more than one produces a matrix. |
@@ -49,6 +50,7 @@ omit its files **and** the doc sentences/links that mention it.
 | Component | Produces |
 |---|---|
 | `issue_and_pr_templates` | `.github/ISSUE_TEMPLATE/*`, `PULL_REQUEST_TEMPLATE.md` |
+| `game_docs` | DESIGN.md, GAMEPLAY.md, HOW_TO_PLAY.md and the "Game-specific process" CONTRIBUTING section. Only meaningful for `kind: game`; default `true` there, `false` otherwise. |
 | `decisions_log` | `docs/DECISIONS.md` and the "add an entry in the same PR" rule |
 | `pr_check_skill` | No files: the plugin owns `pr-check`. When on, CONTRIBUTING.md/CLAUDE.md require it as the standing pre-merge step. |
 | `run_skill_and_toolchain` | via `toolchain-run`: pin file, setup scripts, `run` skill |
