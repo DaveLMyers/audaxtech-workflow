@@ -11,23 +11,28 @@ The kind comes from <repo>/.claude/workflow.json when it has one, else --kind,
 else `game` (bootstrap's default; the report says it was assumed). Components
 switched off in workflow.json (`components.<name>: false`) are not reported.
 
+Limits: file names are compared the way the OS compares them, so on Windows and
+macOS (case-insensitive by default) docs/DESIGN-IDEAS.md counts as docs/design-ideas.md.
+The CLAUDE.md pointer is recognised by the file name appearing anywhere in CLAUDE.md.
+
 Exit codes: 0 = report produced (even if things are missing), 2 = bad usage or
 the repo directory does not exist.
 """
 import argparse
 import json
 import os
+import re
 import sys
 
 GAME_DOCS = ["VISION.md", "DESIGN.md", "GAMEPLAY.md", "HOW_TO_PLAY.md", "design-ideas.md"]
 ISSUE_TEMPLATES = ["feature.yml", "bug_report.yml", "chore.yml", "research.yml"]
-GAME_SECTION_HEADING = "## Game-specific process"
+GAME_SECTION_RE = re.compile(r"^##[ 	]+Game-specific process\b", re.MULTILINE)  # a level-2 heading, not "###"
 IDEAS_POINTER = "design-ideas.md"
 
 
 def read(path):
     try:
-        with open(path, encoding="utf-8", errors="replace") as f:
+        with open(path, encoding="utf-8-sig", errors="replace") as f:  # -sig: Notepad adds a BOM
             return f.read()
     except OSError:
         return None
@@ -75,7 +80,12 @@ def check(repo, kind_arg):
         for t in ISSUE_TEMPLATES:
             want(".github/ISSUE_TEMPLATE/" + t, "issue template", "github/ISSUE_TEMPLATE/" + t)
     if on("ci"):
-        want(".github/workflows/ci.yml", "CI workflow", "github/workflows/ci.yml.tmpl")
+        # Any workflow file counts: a repo whose CI is test.yml must not be offered a second one.
+        wf = os.path.join(repo, ".github", "workflows")
+        has_ci = os.path.isdir(wf) and any(n.lower().endswith((".yml", ".yaml")) for n in os.listdir(wf))
+        (present if has_ci else missing).append(
+            {"path": ".github/workflows/ci.yml", "what": "CI workflow (no workflow file found)", "template": "github/workflows/ci.yml.tmpl", "type": "file"}
+        )
     want(".claude/workflow.json", "the marker that switches the plugin's hooks on", "(generated)")
 
     # Game-only pieces.
@@ -83,10 +93,10 @@ def check(repo, kind_arg):
         for d in GAME_DOCS:
             want("docs/" + d, "game doc", "kinds/game/" + d)
         contributing = read(os.path.join(repo, "CONTRIBUTING.md"))
-        if contributing is not None and GAME_SECTION_HEADING not in contributing:
+        if contributing is not None and not GAME_SECTION_RE.search(contributing):
             missing.append({
                 "path": "CONTRIBUTING.md", "type": "section",
-                "what": "the '%s' section" % GAME_SECTION_HEADING.lstrip("# "),
+                "what": "the 'Game-specific process' section",
                 "template": "kinds/game/contributing-extra.md",
             })
         claude = read(os.path.join(repo, "CLAUDE.md"))
