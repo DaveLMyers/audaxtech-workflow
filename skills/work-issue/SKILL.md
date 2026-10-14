@@ -73,6 +73,22 @@ Tests and the boot check must be green first. Then:
 Either way, **ask before pushing.** Do not decide a change is too simple to need
 the ask. If the user says to skip playing and push, do that.
 
+**Visual or feel changes** (an effect, animation, layout, timing, anything judged by
+eye) almost always take several rounds, so plan for that up front instead of one knob
+per launch:
+- **Ask for all the feedback at once.** After each launch ask about everything that
+  could need changing (size, duration, speed, direction, color, anything else?), not
+  just the thing you guessed was wrong.
+- **Keep the tunables easy to name.** Put them as named constants in one obvious block
+  and name them to the user, so "bump PIECE_SIZE" is a complete instruction.
+- **Relaunch carefully.** Check for an already-running instance before every relaunch
+  (the `run` skill says how). The window closing, or a "game closed" notification, is
+  not approval or rejection: it only means the session ended. Wait for the user's
+  actual answer.
+- **Call out what was not re-played.** Any change made after the user's last play-test
+  (even a "behavior-neutral" review fix) is either offered for a final replay or named in
+  the PR body as not re-played.
+
 ## 5. Open the PR
 - **Run each git step as its own simple command**: `git add <paths>`, then
   `git commit -F <message-file>`, then `git push -u origin <branch>`. Never chain them, and
