@@ -19,13 +19,16 @@ FAKEBIN="$(mktemp -d)"
 git -C "$T" init -q; git -C "$O" init -q; mkdir -p "$T/.claude"
 MERGE="gh pr"" merge 42"
 
-# Fake gh: `gh pr checks ...` prints $FAKE_GH_CHECKS, or fails with
-# $FAKE_GH_ERR (exit 1) when that is set. Anything else exits 1.
+# Fake gh: `gh pr checks ...` prints $FAKE_GH_CHECKS and exits $FAKE_GH_RC
+# (default 0), or fails with $FAKE_GH_ERR on stderr (exit 1) when that is set.
+# $FAKE_GH_SLEEP makes it hang first (exec, so a kill leaves no orphan).
+# Anything else exits 1.
 cat > "$FAKEBIN/gh" <<'EOF'
 #!/usr/bin/env bash
 if [ "${1:-}" = "pr" ] && [ "${2:-}" = "checks" ]; then
-  if [ -n "${FAKE_GH_ERR:-}" ]; then echo "$FAKE_GH_ERR"; exit 1; fi
-  echo "${FAKE_GH_CHECKS:-[]}"; exit 0
+  [ -n "${FAKE_GH_SLEEP:-}" ] && exec sleep "$FAKE_GH_SLEEP"
+  if [ -n "${FAKE_GH_ERR:-}" ]; then echo "$FAKE_GH_ERR" >&2; exit 1; fi
+  echo "${FAKE_GH_CHECKS:-[]}"; exit "${FAKE_GH_RC:-0}"
 fi
 exit 1
 EOF
@@ -98,10 +101,49 @@ FAKE_GH_CHECKS='not json at all' \
 FAKE_GH_CHECKS='[{"name":"test","bucket":"fail"}]' \
   run_hook block-merge-if-ci-red.sh "$T" "$T" "gh pr"" merge 7 --squash"; expect_deny "explicit PR number + flags still gated"
 # macOS has no GNU `timeout`; the gate must still work (and still deny red CI)
-# through its Python fallback. WORKFLOW_HOOKS_NO_TIMEOUT_BIN=1 forces that path.
-WORKFLOW_HOOKS_NO_TIMEOUT_BIN=1 FAKE_GH_CHECKS='[{"name":"test","bucket":"pass"}]'   run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";        expect_allow "no timeout binary: green CI allowed"
-WORKFLOW_HOOKS_NO_TIMEOUT_BIN=1 FAKE_GH_CHECKS='[{"name":"test","bucket":"fail"}]'   run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";        expect_deny  "no timeout binary: red CI still blocks" "test: fail"
-WORKFLOW_HOOKS_NO_TIMEOUT_BIN=1 FAKE_GH_ERR='no pull requests found'   run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";        expect_deny  "no timeout binary: unreadable CI fails closed" "could not read PR checks"
+# through its shell-watchdog fallback. WORKFLOW_HOOKS_NO_TIMEOUT_BIN=1 forces
+# that path; every case below runs on both paths where it makes sense.
+NOTO=WORKFLOW_HOOKS_NO_TIMEOUT_BIN
+for mode in real watchdog; do
+  if [ "$mode" = watchdog ]; then export $NOTO=1; else unset $NOTO; fi
+  echo "-- $mode path"
+  FAKE_GH_CHECKS='[{"name":"test","bucket":"pass"}]'     run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";      expect_allow "$mode: green CI allowed"
+  FAKE_GH_CHECKS='[{"name":"test","bucket":"fail"}]'     run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";      expect_deny  "$mode: red CI still blocks" "test: fail"
+  FAKE_GH_ERR='no pull requests found'     run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";      expect_deny  "$mode: unreadable CI fails closed, stderr text kept" "no pull requests found"
+  # gh failing while its output looks green must not be trusted
+  FAKE_GH_RC=1 FAKE_GH_CHECKS='[{"name":"test","bucket":"pass"}]'     run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";      expect_deny  "$mode: non-zero gh exit with green output blocks" "exited with status 1"
+  # a gh that dies by itself with 128+ is a failure, not a timeout
+  FAKE_GH_RC=130 FAKE_GH_CHECKS='[{"name":"test","bucket":"pass"}]'     run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";      expect_deny  "$mode: gh exit 130 is not reported as a timeout" "exited with status 130"
+  # a hung gh: denied with the timeout message, and promptly
+  START=$SECONDS
+  WORKFLOW_HOOKS_GH_TIMEOUT=1 FAKE_GH_SLEEP=8 FAKE_GH_CHECKS='[{"name":"test","bucket":"pass"}]'     run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";      expect_deny  "$mode: hung gh is denied as timed out" "timed out"
+  [ $((SECONDS-START)) -lt 6 ] && { PASS=$((PASS+1)); echo "ok    $mode: hung gh was cut off promptly"; }     || { FAIL=$((FAIL+1)); echo "FAIL  $mode: hung gh took $((SECONDS-START))s (limit was 1s)"; }
+  # a quick gh must not wait out the limit (a lingering watchdog sleep would)
+  START=$SECONDS
+  WORKFLOW_HOOKS_GH_TIMEOUT=30 FAKE_GH_CHECKS='[{"name":"test","bucket":"pass"}]'     run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";      expect_allow "$mode: quick gh with a 30s limit allowed"
+  [ $((SECONDS-START)) -lt 15 ] && { PASS=$((PASS+1)); echo "ok    $mode: quick gh returned without waiting out the limit"; }     || { FAIL=$((FAIL+1)); echo "FAIL  $mode: quick gh took $((SECONDS-START))s"; }
+done
+unset $NOTO
+
+# Which binary gets used: stubs that record their use, then run the command.
+STUBS="$(mktemp -d)"
+for b in timeout gtimeout; do
+  printf '#!/usr/bin/env bash
+echo used >> "%s/%s.used"
+shift
+exec "$@"
+' "$STUBS" "$b" > "$STUBS/$b"; chmod +x "$STUBS/$b"
+done
+GREEN='[{"name":"test","bucket":"pass"}]'
+rm -f "$STUBS"/*.used
+PATH="$STUBS:$PATH" FAKE_GH_CHECKS="$GREEN" run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE"
+[ -f "$STUBS/timeout.used" ] && [ ! -f "$STUBS/gtimeout.used" ]; chk_path() { if [ "$1" -eq 0 ]; then PASS=$((PASS+1)); echo "ok    $2"; else FAIL=$((FAIL+1)); echo "FAIL  $2"; fi; }
+chk_path $? "timeout binary is preferred when present"
+rm -f "$STUBS"/*.used
+PATH="$STUBS:$PATH" WORKFLOW_HOOKS_NO_TIMEOUT_BIN=1 FAKE_GH_CHECKS="$GREEN" run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE"
+[ ! -f "$STUBS/timeout.used" ] && [ ! -f "$STUBS/gtimeout.used" ]
+chk_path $? "the env flag overrides both timeout and gtimeout"
+rm -rf "$STUBS"
 marker '{"version":1,"components":{"merge_gate_hook":false}}'
 FAKE_GH_CHECKS='[{"name":"test","bucket":"fail"}]' \
   run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";        expect_allow "merge gate switched off per project"

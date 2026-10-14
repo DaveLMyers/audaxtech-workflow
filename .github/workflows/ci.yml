@@ -20,6 +20,8 @@ jobs:
   test:
     name: Tests (${{ matrix.name }})
     runs-on: ${{ matrix.os }}
+    # A hung suite should fail fast, not hold a runner for the 6-hour default.
+    timeout-minutes: 15
     # The plugin is meant to run wherever Claude Code does, so each OS runs the
     # same suites as its own check, and one failing OS must not hide the others.
     # The repo is public, so Actions minutes are free; trim the matrix with
