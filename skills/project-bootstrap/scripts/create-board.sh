@@ -3,6 +3,9 @@
 # repo, creates the standard labels, and prints every id a project needs (in the shape .claude/workflow.json expects) for
 # scripting it as a JSON `board` block on stdout (progress goes to stderr).
 #
+# Also adds a "Prioritized backlog" board view and renames the default view
+# "Table" (best-effort: a failure there warns and the script carries on).
+#
 # Usage: create-board.sh <owner> <repo> <board-title> "<area1,area2,...>"
 #
 # Only call this AFTER the user has confirmed the board name/owner (see
@@ -49,6 +52,47 @@ mutation($f:ID!){
 # Priority field.
 gh project field-create "$NUM" --owner "$OWNER" --name "Priority" \
   --data-type SINGLE_SELECT --single-select-options "P1,P2,P3" >&2
+
+# Saved views: a "Prioritized backlog" board view (columns by Status; the board
+# layout's default) showing Title, Assignees, Labels and Priority, and the
+# default table view renamed "Table". A new board only has the default table
+# ("View 1"). Non-fatal: the board is already usable without the views, so a
+# failure here warns on stderr and the script carries on to labels and the JSON.
+make_views() {
+  local ids=() id view_id
+  while IFS= read -r id; do
+    [ -n "$id" ] && ids+=(-f "ids[]=$id")
+  done < <(gh project field-list "$NUM" --owner "$OWNER" --format json | python -c '
+import sys,json
+want=["Title","Assignees","Labels","Priority"]
+by={f["name"]:f["id"] for f in json.load(sys.stdin)["fields"]}
+missing=[n for n in want if n not in by]
+if missing: sys.exit("fields not found: "+", ".join(missing))
+print("\n".join(by[n] for n in want))') || return 1
+  [ "${#ids[@]}" -eq 8 ] || return 1
+  # The default view, read before the new one exists so it cannot be confused with it.
+  view_id="$(gh api graphql -f query='
+query($p:ID!){ node(id:$p){ ... on ProjectV2{ views(first:20){ nodes{ id name layout } } } } }' \
+    -f p="$PID" | python -c '
+import sys,json
+for v in json.load(sys.stdin)["data"]["node"]["views"]["nodes"]:
+    if v["layout"]=="TABLE_LAYOUT": print(v["id"]); break')" || view_id=""
+  gh api graphql -f query='
+mutation($p:ID!,$ids:[ID!]){
+  createProjectV2View(input:{projectId:$p, name:"Prioritized backlog", layout:BOARD_LAYOUT,
+    configuration:{visibleFieldIds:$ids}}){ projectV2View{ id } }
+}' -f p="$PID" "${ids[@]}" >&2 || return 1
+  echo >&2
+  if [ -n "$view_id" ]; then
+    gh api graphql -f query='
+mutation($v:ID!){ updateProjectV2View(input:{viewId:$v, name:"Table"}){ projectV2View{ id } } }' \
+      -f v="$view_id" >&2 || echo "warning: could not rename the default view to 'Table'; left as is" >&2
+    echo >&2
+  else
+    echo "warning: default table view not found; not renamed" >&2
+  fi
+}
+make_views || echo "warning: could not create the 'Prioritized backlog' view; the board works without it - add it in the board UI (+ New view > Board)" >&2
 
 # Labels: type:*, priority:*, area:*. Existing labels are left untouched (no
 # --force) so bootstrapping into a repo that already has some never clobbers

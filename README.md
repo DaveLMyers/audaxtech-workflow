@@ -8,7 +8,7 @@ It encodes one opinionated way of working: every change is an issue on a board, 
 
 | Piece | What it does |
 |---|---|
-| `project-bootstrap` skill | Scaffolds a new repo's process: CONTRIBUTING, a DECISIONS log, issue/PR templates, a CI workflow, CLAUDE.md, and a GitHub Projects v2 board with columns, a priority field and labels. For a game it also adds the game docs (VISION, DESIGN, GAMEPLAY, HOW_TO_PLAY, a design-ideas log). |
+| `project-bootstrap` skill | Scaffolds a new repo's process: CONTRIBUTING, a DECISIONS log, issue/PR templates, a CI workflow, CLAUDE.md, and a GitHub Projects v2 board with columns, a priority field, a "Prioritized backlog" view and labels. For a game it also adds the game docs (VISION, DESIGN, GAMEPLAY, HOW_TO_PLAY, a design-ideas log). |
 | Stack modules | Engine conventions, testing guidance, CI steps and ignore rules, picked at bootstrap. Today: `godot-gdscript`, with optional cross-platform and translatable-text rules (both on by default for games). |
 | `toolchain-run` skill | Generates a pinned, repo-local toolchain setup (version pin file, bash and PowerShell setup scripts, a `run` skill) so nobody installs the engine system-wide or hunts for it. Reuses an install you already have, but only if it is exactly the pinned version. |
 | `work-issue` skill | Takes an issue from Ready to ready-to-merge following the workflow, so "work issue #90" is the whole prompt: checks repo state, moves the board card, branches, implements with tests, lets you try it before anything is pushed, opens the PR, runs `pr-check`, and asks before merging. It never merges without an explicit yes. |
@@ -49,9 +49,10 @@ Personal defaults (GitHub owner, merge method, board columns, CI matrix, compone
 
 This was extracted from two real Godot projects and then tested piece by piece.
 
-**Tested:** the hooks (45 cases, `tests/run-hook-tests.sh`, each fix sabotage-checked), the `work-issue` helper scripts for board status and branch naming (26 cases against a fake `gh`, `tests/run-workissue-tests.sh`, plus a live read and write against a real board), the toolchain generator for both bash and PowerShell, including fresh install, version bump, bad pin, and reuse of an existing install by flag, env var and PATH (20 cases, `tests/run-toolchain-tests.sh`, which serves a fake tool from localhost), and the merge gate live in a real repository.
+**Tested:** the hooks (45 cases, `tests/run-hook-tests.sh`, each fix sabotage-checked), the `work-issue` helper scripts for board status and branch naming (34 cases against a fake `gh`, including `create-board.sh`'s saved views, `tests/run-workissue-tests.sh`, plus a live read and write against a real board), the toolchain generator for both bash and PowerShell, including fresh install, version bump, bad pin, and reuse of an existing install by flag, env var and PATH (20 cases, `tests/run-toolchain-tests.sh`, which serves a fake tool from localhost), and the merge gate live in a real repository.
 
 **Not yet verified:**
+- `create-board.sh`'s view step against a live board end to end (the `createProjectV2View` call was used by hand on a real board; the "Table" rename via `updateProjectV2View` has only run against the fake `gh`);
 - the cwd guard triggered live (unit-tested only: a stale `cd` cannot be reproduced in the harness);
 - the macOS Godot download path (the URL and bundle layout come from a working setup but have not been fetched by the generated script);
 - the three-OS CI matrix on GitHub Actions;
