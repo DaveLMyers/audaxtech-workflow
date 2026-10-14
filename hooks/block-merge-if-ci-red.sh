@@ -63,10 +63,38 @@ TARGET="$(printf '%s' "$COMMAND" | grep -oE 'gh[[:space:]]+pr[[:space:]]+merge[[
 # timeout budget, so a hung/slow `gh pr checks` fails this script closed
 # (an explicit deny below) rather than racing an external hook-timeout
 # whose allow-vs-deny behavior on expiry isn't guaranteed.
+#
+# GNU `timeout` is missing on stock macOS (and `gtimeout` only exists with
+# Homebrew coreutils), where a bare `timeout` call would fail and make this
+# gate deny every merge. So fall back to a small shell watchdog with the same
+# contract: merged stdout+stderr, the command's exit code, 124 on timeout.
+# WORKFLOW_HOOKS_NO_TIMEOUT_BIN=1 forces the fallback (used by the tests).
+run_with_timeout() {
+  local secs="$1"; shift
+  if [ -z "${WORKFLOW_HOOKS_NO_TIMEOUT_BIN:-}" ] && command -v timeout >/dev/null 2>&1; then
+    timeout "${secs}s" "$@"
+  elif [ -z "${WORKFLOW_HOOKS_NO_TIMEOUT_BIN:-}" ] && command -v gtimeout >/dev/null 2>&1; then
+    gtimeout "${secs}s" "$@"
+  else
+    local out rc wd
+    out="$(mktemp)"
+    "$@" >"$out" 2>&1 &
+    local pid=$!
+    ( sleep "$secs"; kill "$pid" 2>/dev/null ) >/dev/null 2>&1 &
+    wd=$!
+    wait "$pid"; rc=$?
+    kill "$wd" 2>/dev/null
+    cat "$out"; rm -f "$out"
+    # Death by signal (the watchdog's kill) reads as a timeout.
+    [ "$rc" -ge 128 ] && rc=124
+    return "$rc"
+  fi
+}
+
 if [ -n "$TARGET" ]; then
-  CHECKS_RAW="$(timeout 20s gh pr checks "$TARGET" --json name,bucket 2>&1)" && GH_RC=0 || GH_RC=$?
+  CHECKS_RAW="$(run_with_timeout 20 gh pr checks "$TARGET" --json name,bucket 2>&1)" && GH_RC=0 || GH_RC=$?
 else
-  CHECKS_RAW="$(timeout 20s gh pr checks --json name,bucket 2>&1)" && GH_RC=0 || GH_RC=$?
+  CHECKS_RAW="$(run_with_timeout 20 gh pr checks --json name,bucket 2>&1)" && GH_RC=0 || GH_RC=$?
 fi
 
 if [ "$GH_RC" -eq 124 ]; then

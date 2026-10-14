@@ -97,6 +97,11 @@ FAKE_GH_CHECKS='not json at all' \
   run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";        expect_deny  "garbage from gh fails closed"
 FAKE_GH_CHECKS='[{"name":"test","bucket":"fail"}]' \
   run_hook block-merge-if-ci-red.sh "$T" "$T" "gh pr"" merge 7 --squash"; expect_deny "explicit PR number + flags still gated"
+# macOS has no GNU `timeout`; the gate must still work (and still deny red CI)
+# through its Python fallback. WORKFLOW_HOOKS_NO_TIMEOUT_BIN=1 forces that path.
+WORKFLOW_HOOKS_NO_TIMEOUT_BIN=1 FAKE_GH_CHECKS='[{"name":"test","bucket":"pass"}]'   run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";        expect_allow "no timeout binary: green CI allowed"
+WORKFLOW_HOOKS_NO_TIMEOUT_BIN=1 FAKE_GH_CHECKS='[{"name":"test","bucket":"fail"}]'   run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";        expect_deny  "no timeout binary: red CI still blocks" "test: fail"
+WORKFLOW_HOOKS_NO_TIMEOUT_BIN=1 FAKE_GH_ERR='no pull requests found'   run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";        expect_deny  "no timeout binary: unreadable CI fails closed" "could not read PR checks"
 marker '{"version":1,"components":{"merge_gate_hook":false}}'
 FAKE_GH_CHECKS='[{"name":"test","bucket":"fail"}]' \
   run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";        expect_allow "merge gate switched off per project"
