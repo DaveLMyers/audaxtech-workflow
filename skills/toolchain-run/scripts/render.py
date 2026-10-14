@@ -10,7 +10,7 @@ Writes into <repo_dir>:
                                       merge by hand into an existing one, e.g. a 2nd toolchain)
 and appends "/<bin_dir>/" to .gitignore if missing.
 
-See ../SKILL.md for the spec schema and ../references/godot.spec.json for a
+See ../SKILL.md for the spec schema and ../examples/godot.spec.json for a
 complete real example.
 """
 import json

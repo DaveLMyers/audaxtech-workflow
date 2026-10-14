@@ -18,11 +18,11 @@ Personal defaults live in `~/.claude/workflow-profile.json`; see
 ## Try it locally
 
 ```
-claude --plugin-dir E:\GameProjects\repos\audaxtech-workflow
+claude --plugin-dir <path-to>/audaxtech-workflow
 ```
 `/reload-plugins` picks up edits in a running session. Skills are then
 `/audaxtech-workflow:project-bootstrap` etc. Validate with
-`claude plugin validate E:\GameProjects\repos\audaxtech-workflow`.
+`claude plugin validate <path-to>/audaxtech-workflow`.
 
 Requires `bash`, `python` and `gh` on PATH (Git Bash on Windows). Tested on
 Windows only so far.

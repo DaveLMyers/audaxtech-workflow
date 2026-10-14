@@ -1,11 +1,11 @@
 ---
 name: project-bootstrap
-description: Scaffolds the full working process for a new project - CONTRIBUTING.md, DECISIONS.md log, issue/PR templates, CI skeleton, a short CLAUDE.md, a `.claude/workflow.json` marker that switches on the audaxtech-workflow plugin's hooks and pr-check for the project, plus a GitHub Projects v2 board with standard columns, Priority field and labels. Use when the user is starting a new project/repo (game or otherwise) or wants the standard workflow set up in an existing one. Triggers on "new project," "start a project," "bootstrap," "scaffold the repo/process," "set up the workflow/board for this project."
+description: Scaffolds the full working process for a new project - CONTRIBUTING.md, DECISIONS.md log, issue/PR templates, CI skeleton, a short CLAUDE.md, a `.claude/workflow.json` marker that switches on the audaxtech-workflow plugin's hooks and pr-check for the project, plus a GitHub Projects v2 board with standard columns, Priority field and labels. Use when the user is starting a new project/repo (of any kind) or wants the standard workflow set up in an existing one. Triggers on "new project," "start a project," "bootstrap," "scaffold the repo/process," "set up the workflow/board for this project."
 ---
 
 # Project bootstrap
 
-Packages the process that was worked out on critter-wars-godot so a new
+Packages a project process that was worked out in practice so a new
 project starts with it instead of rediscovering it. Everything here is
 domain-neutral; stack-specific parts (build/test/run commands, CI steps,
 style conventions) are filled in during the interview.

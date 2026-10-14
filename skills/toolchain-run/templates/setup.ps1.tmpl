@@ -54,7 +54,7 @@ if (-not (Test-Path $realBin)) {
     throw "Expected $realBin after extract - archive layout changed?"
 }
 
-# Stable, version-agnostic launcher. Some tools (see the Godot recipe) refuse
+# Stable, version-agnostic launcher. Some tools (see examples/godot.spec.json) refuse
 # to run if renamed, so this forwards to the real binary under its own name
 # instead of aliasing/renaming it.
 $binRelWin = $binRel.Replace('/', '\')

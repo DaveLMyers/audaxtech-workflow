@@ -30,7 +30,8 @@
     "types": ["feature", "bug", "chore", "docs"],
     "area_presets": {
       "default": ["core", "ui", "build"],
-      "game": ["board", "ui", "audio", "build"]
+      "web": ["frontend", "api", "data", "build"],
+      "library": ["core", "docs", "build"]
     }
   },
 

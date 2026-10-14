@@ -5,8 +5,8 @@ description: Generates a repo-local, pinned toolchain setup for a project - a ve
 
 # Toolchain-run generator
 
-Generalizes what critter-wars-godot learned the hard way: two Claude sessions
-once each found Godot in a different place on the same machine. The fix is
+Generalizes a lesson learned the hard way: two Claude sessions on one machine
+each found the same tool in a different place. The fix is
 one canonical, repo-local answer produced by a script, with a pin file as the
 single source of truth for the version (CI uses the same script and keys its
 cache on the pin file).
@@ -33,7 +33,7 @@ cache on the pin file).
    user should approve (name the file, source, rough size). Prefer checking a
    URL with a HEAD request first; a wrong URL is the usual failure.
 3. **Write a spec** (JSON; schema below). Start from
-   `references/godot.spec.json`, a complete real example.
+   `examples/godot.spec.json`, a complete real example.
 4. **Render:** `python <this skill's base directory>/scripts/render.py spec.json <repo> [--dry-run]`.
    Writes the pin file (never overwrites an existing pin), `tools/setup-<name>.sh`
    and `.ps1`, `.claude/skills/run/SKILL.md` (kept if one exists - merge by
@@ -47,10 +47,10 @@ cache on the pin file).
 
 ```json
 {
-  "tool": "Godot", "name": "godot", "project": "Critter Wars",
-  "version": "4.7.2-stable",
-  "pin_file": ".godot-version", "bin_dir": ".godot-bin",
-  "version_args": ["--headless", "--version"],
+  "tool": "MyTool", "name": "mytool", "project": "My Project",
+  "version": "1.4.2-stable",
+  "pin_file": ".mytool-version", "bin_dir": ".mytool-bin",
+  "version_args": ["--version"],
   "version_match": "{version_core}",
   "platforms": {
     "windows": {"url": "...{version}...", "archive": "zip", "bin": "path/in/archive.exe"},

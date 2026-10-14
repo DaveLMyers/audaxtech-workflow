@@ -41,8 +41,8 @@ red run is a "don't merge"; the plugin's merge hook enforces this for
 
 ### 2. Tests pass, and test the right thing
 Run the suite. Then decide whether the change has **meaningfully complex
-logic** (real branching, an algorithm, rules that interact, math, spawn/
-scoring/selection logic - not a getter or glue code). If it does, and the
+logic** (real branching, an algorithm, rules that interact, math, pricing/
+scheduling/selection logic - not a getter or glue code). If it does, and the
 implementation and its tests were written by the same author (you, in most
 cases), run the blind check:
 

@@ -35,7 +35,7 @@ bootstrap time.
 | `board.columns` | the five shown | **Roles -> display names.** Instructions reference roles ("move to in_progress"); only the board shows the display name. All five roles are required; rename freely. |
 | `board.priorities` | `P1,P2,P3` | Also creates matching `priority:` labels. |
 | `labels.types` | feature,bug,chore,docs | Add e.g. `research`. Each gets a `type:` label and issue-template support. |
-| `labels.area_presets` | default + game | Picked by project kind, then edited in the interview. |
+| `labels.area_presets` | default, web, library (examples; add your own) | Picked by project kind, then edited in the interview. |
 | `review.independent_review_required` | `true` | Governs the CONTRIBUTING "standing step" wording and pr-check step 3. |
 | `review.default_effort` | `medium` | Starting point for the effort-calibration guidance. |
 | `ci.os` | `["ubuntu-latest"]` | A list of runners; more than one produces a matrix. |
