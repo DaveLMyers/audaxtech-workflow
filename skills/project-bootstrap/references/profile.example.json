@@ -1,21 +1,17 @@
 {
   "version": 1,
-
   "kind": "game",
   "stack": "godot-gdscript",
-
   "identity": {
     "github_owner": "your-github-login",
     "default_visibility": "private"
   },
-
   "git": {
     "merge_method": "squash",
     "commit_convention": "conventional",
     "branch_pattern": "{type}/{slug}",
     "delete_branch_on_merge": true
   },
-
   "board": {
     "enabled": true,
     "title": "{project} backlog",
@@ -26,36 +22,79 @@
       "in_review": "In Review",
       "done": "Done"
     },
-    "priorities": ["P1", "P2", "P3"]
+    "priorities": [
+      "P1",
+      "P2",
+      "P3"
+    ]
   },
-
   "labels": {
-    "types": ["feature", "bug", "chore", "docs"],
+    "types": [
+      "feature",
+      "bug",
+      "chore",
+      "docs",
+      "research"
+    ],
     "area_presets": {
-      "game": ["gameplay", "ui", "audio", "build"],
-      "web": ["frontend", "api", "data", "build"],
-      "library": ["core", "docs", "build"],
-      "other": ["core", "ui", "build"]
+      "game": [
+        "gameplay",
+        "ui",
+        "audio",
+        "build"
+      ],
+      "web": [
+        "frontend",
+        "api",
+        "data",
+        "build"
+      ],
+      "library": [
+        "core",
+        "docs",
+        "build"
+      ],
+      "other": [
+        "core",
+        "ui",
+        "build"
+      ]
     }
   },
-
   "review": {
     "independent_review_required": true,
     "default_effort": "medium"
   },
-
   "ci": {
-    "os": ["ubuntu-latest"]
+    "matrix": [
+      {
+        "name": "Linux",
+        "os": "ubuntu-latest"
+      },
+      {
+        "name": "macOS Intel",
+        "os": "macos-15-intel"
+      },
+      {
+        "name": "macOS Apple Silicon",
+        "os": "macos-latest"
+      },
+      {
+        "name": "Windows",
+        "os": "windows-latest"
+      }
+    ]
   },
-
   "components": {
     "issue_and_pr_templates": true,
-    "game_docs": true,
     "decisions_log": true,
     "pr_check_skill": true,
     "run_skill_and_toolchain": true,
     "ci": true,
     "merge_gate_hook": true,
-    "cwd_guard_hook": true
+    "cwd_guard_hook": true,
+    "game_docs": true,
+    "cross_platform_habits": true,
+    "translatable_text": true
   }
 }

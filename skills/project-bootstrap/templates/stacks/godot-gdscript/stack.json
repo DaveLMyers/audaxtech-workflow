@@ -16,17 +16,41 @@
     "cross_platform_habits": {
       "file": "optional/cross-platform-habits.md",
       "append_to": "CONTRIBUTING.md (inside the game-specific process section)",
-      "when": "the game ships on more than one platform"
+      "when": "on by default for games (macOS, Linux and Windows are all supported targets); opt out only for a deliberately single-platform project",
+      "default": true,
+      "component": "cross_platform_habits"
     },
     "translatable_text": {
       "file": "optional/translatable-text.md",
       "append_to": "CONTRIBUTING.md (inside the game-specific process section)",
-      "when": "the game may be played in more than one language"
+      "when": "on by default for games (cheaper to start translatable than to retrofit); opt out only if the game will never be localized",
+      "default": true,
+      "component": "translatable_text"
     }
   },
   "run_commands": [
     "Tests: .godot-bin/godot --headless -s addons/gut/gut_cmdln.gd -gconfig=res://.gutconfig.json",
     "Import / script-error check: .godot-bin/godot --headless --editor --quit (then fail on SCRIPT ERROR)"
   ],
-  "vendored": ["addons/gut (GUT test framework)"]
+  "vendored": [
+    "addons/gut (GUT test framework)"
+  ],
+  "ci_matrix_default": [
+    {
+      "name": "Linux",
+      "os": "ubuntu-latest"
+    },
+    {
+      "name": "macOS Intel",
+      "os": "macos-15-intel"
+    },
+    {
+      "name": "macOS Apple Silicon",
+      "os": "macos-latest"
+    },
+    {
+      "name": "Windows",
+      "os": "windows-latest"
+    }
+  ]
 }

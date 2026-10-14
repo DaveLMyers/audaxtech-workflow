@@ -25,5 +25,7 @@ claude --plugin-dir <path-to>/audaxtech-workflow
 `/audaxtech-workflow:project-bootstrap` etc. Validate with
 `claude plugin validate <path-to>/audaxtech-workflow`.
 
+Tests: `bash tests/run-hook-tests.sh` and `bash tests/run-toolchain-tests.sh` (both self-contained; the second serves a fake tool from localhost and cleans up after itself).
+
 Requires `bash`, `python` and `gh` on PATH (Git Bash on Windows). Tested on
 Windows only so far.

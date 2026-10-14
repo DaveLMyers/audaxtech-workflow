@@ -36,11 +36,11 @@ bootstrap time.
 | `board.title` | `{project} backlog` | `{project}` = project name. |
 | `board.columns` | the five shown | **Roles -> display names.** Instructions reference roles ("move to in_progress"); only the board shows the display name. All five roles are required; rename freely. |
 | `board.priorities` | `P1,P2,P3` | Also creates matching `priority:` labels. |
-| `labels.types` | feature,bug,chore,docs | Add e.g. `research`. Each gets a `type:` label and issue-template support. |
+| `labels.types` | feature, bug, chore, docs, research | Each gets a `type:` label. `research` is for spikes whose output is knowledge, not a feature. |
 | `labels.area_presets` | `game`, `web`, `library`, `other` | Keyed by `kind`; the matching preset is proposed, then edited in the interview. Add your own kinds. |
 | `review.independent_review_required` | `true` | Governs the CONTRIBUTING "standing step" wording and pr-check step 3. |
 | `review.default_effort` | `medium` | Starting point for the effort-calibration guidance. |
-| `ci.os` | `["ubuntu-latest"]` | A list of runners; more than one produces a matrix. |
+| `ci.matrix` | games: Linux, macOS Intel, macOS Apple Silicon, Windows; other kinds: Linux | List of `{name, os}`; rendered into the CI job matrix. Games default to every desktop platform because cross-platform is a baseline, not an afterthought. On a private repo, macOS minutes use the monthly Actions allowance ~10x faster than Linux (Windows ~2x); trim the list here if usage grows. |
 | `components.*` | all `true` | See below. |
 
 ## Components
@@ -51,7 +51,9 @@ omit its files **and** the doc sentences/links that mention it.
 | Component | Produces |
 |---|---|
 | `issue_and_pr_templates` | `.github/ISSUE_TEMPLATE/*`, `PULL_REQUEST_TEMPLATE.md` |
-| `game_docs` | DESIGN.md, GAMEPLAY.md, HOW_TO_PLAY.md and the "Game-specific process" CONTRIBUTING section. Only meaningful for `kind: game`; default `true` there, `false` otherwise. |
+| `game_docs` | `docs/VISION.md`, `DESIGN.md`, `GAMEPLAY.md`, `HOW_TO_PLAY.md`, `design-ideas.md` and the "Game-specific process" CONTRIBUTING section. Only meaningful for `kind: game`; default `true` there, `false` otherwise. |
+| `cross_platform_habits` | The stack's cross-platform rules (paths, filename case, OS calls, float tolerance...) in CONTRIBUTING.md. Default `true` for games. |
+| `translatable_text` | The stack's translatable-text rules (`tr()`, no sentence-building, a baseline test). Default `true` for games. |
 | `decisions_log` | `docs/DECISIONS.md` and the "add an entry in the same PR" rule |
 | `pr_check_skill` | No files: the plugin owns `pr-check`. When on, CONTRIBUTING.md/CLAUDE.md require it as the standing pre-merge step. |
 | `run_skill_and_toolchain` | via `toolchain-run`: pin file, setup scripts, `run` skill |

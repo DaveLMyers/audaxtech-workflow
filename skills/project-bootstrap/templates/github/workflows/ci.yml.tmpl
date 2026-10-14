@@ -6,21 +6,32 @@ on:
   pull_request:
     branches: [main]
 
-# A rapid string of pushes to the same PR/branch supersedes the in-flight run
-# instead of queueing a full run per push.
+# A rapid string of pushes to the same PR shouldn't queue a full run per push:
+# cancel anything a newer run has made moot. Only for pull requests - a run on
+# a main commit should always finish, or that commit never gets a result.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
 
 jobs:
   test:
-    name: Build + tests
-    runs-on: ubuntu-latest
+    name: Build + tests (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    # Every platform the project is meant to run on gets the same checks, each
+    # as its own check, so a break on one shows up the day it is made. One
+    # failing platform must not hide the others, so the rest keep running.
+    # Cost: on a private repo the monthly Actions allowance is consumed faster
+    # by macOS (about 10x) and Windows (about 2x) minutes than Linux; check
+    # your plan's current numbers. Trim the matrix with `ci.matrix` in
+    # .claude/workflow.json if usage grows.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+{{CI_MATRIX}}
     steps:
       - uses: actions/checkout@v4
-
-      # {{CI_SETUP_COMMENT}}
 {{CI_STEPS}}

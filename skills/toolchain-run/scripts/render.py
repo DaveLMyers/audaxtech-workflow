@@ -15,6 +15,7 @@ complete real example.
 """
 import json
 import os
+import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -65,9 +66,9 @@ def platform_cases(plats):
         out.append("  %s)" % p)
         if v is None or "unsupported" in v:
             msg = (v or {}).get("unsupported", "%s isn't wired up in this script yet." % p)
-            for line in msg.splitlines():
-                out.append("    echo %s >&2" % sh_quote(line))
-            out.append("    exit 1 ;;")
+            # Not fatal here: --existing / the env var / PATH can still supply an
+            # install on this platform. Only reaching the download step fails.
+            out.append("    UNSUPPORTED=%s ;;" % sh_quote(msg))
         else:
             out.append("    URL=%s" % sh_dq(v["url"]))
             out.append("    ARCHIVE=%s" % sh_quote(v["archive"]))
@@ -86,6 +87,7 @@ def render_template(name, repl):
 
 
 def run_skill(spec):
+    names = spec.get("discover", {}).get("path_names", [])
     b = spec["bin_dir"]
     name = spec["name"]
     tool = spec["tool"]
@@ -108,6 +110,16 @@ def run_skill(spec):
     A("- macOS/Linux/Git Bash: `./tools/setup-%s.sh`" % name)
     A("")
     A("It fetches the version pinned in `%s`. To upgrade, change that one file (CI uses the same script and cache key)." % spec["pin_file"])
+    A("")
+    A("### Already have %s installed?" % tool)
+    A("")
+    A("Reuse it instead of downloading another copy - **but only if it is exactly the pinned version**. The script checks the version for you and never silently uses a different one:")
+    A("")
+    envvar = re.sub(r"[^A-Za-z0-9]", "_", name).upper() + "_EXISTING"
+    A("- `./tools/setup-%s.sh --existing <folder-or-exe>` (Windows: `.\\tools\\setup-%s.ps1 -Existing <folder-or-exe>`) - strict: a wrong version is an error." % (name, name))
+    A("- Or set `%s` to the folder or exe%s - these are tried automatically and skipped with a message if the version differs, falling back to the download." % (envvar, (", or have `%s` on PATH" % names[0]) if names else ""))
+    A("")
+    A("The launcher this writes is machine-specific (it lives in the git-ignored `%s/`)." % b)
     A("")
     A("## The binary")
     A("")
@@ -162,6 +174,7 @@ def main():
     repo = args[1]
     w = spec["platforms"]["windows"]
     va = spec["version_args"]
+    names = spec.get("discover", {}).get("path_names", [])
     repl = {
         "TOOL": spec["tool"], "NAME": spec["name"],
         "PIN_FILE": spec["pin_file"], "BIN_DIR": spec["bin_dir"],
@@ -171,6 +184,10 @@ def main():
         "PLATFORM_CASES": platform_cases(spec["platforms"]),
         "WIN_URL": w["url"].replace("'", "''"), "WIN_ARCHIVE": w["archive"],
         "WIN_BIN": w["bin"].replace("'", "''"),
+        "ENVVAR": re.sub(r"[^A-Za-z0-9]", "_", spec["name"]).upper() + "_EXISTING",
+        "PATH_NAMES": " ".join(names),
+        "PATH_NAMES_DISPLAY": ", ".join(names) if names else "(no PATH names configured)",
+        "PATH_NAMES_PS": ",".join("'%s'" % n.replace("'", "''") for n in names),
     }
     tools = os.path.join(repo, "tools")
     write(os.path.join(repo, spec["pin_file"]), spec["version"] + "\n", dry, keep_existing=True)

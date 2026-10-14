@@ -1,26 +1,57 @@
+
       - name: Cache Godot binary
         uses: actions/cache@v4
         with:
           path: .godot-bin
-          key: godot-${{ hashFiles('.godot-version') }}-linux
+          key: godot-${{ hashFiles('.godot-version') }}-${{ runner.os }}-${{ runner.arch }}
 
-      # Same script a local contributor runs (tools/setup-godot.sh): one
-      # implementation of "how to get Godot", not a second copy of the
-      # download logic that could drift.
+      # Same scripts a contributor runs (tools/setup-godot.sh on Linux and
+      # macOS, tools/setup-godot.ps1 on Windows): one implementation of "how to
+      # get Godot" per platform, not a second copy of the download logic that
+      # could drift.
       - name: Set up Godot
+        if: runner.os != 'Windows'
         run: ./tools/setup-godot.sh
 
+      - name: Set up Godot (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./tools/setup-godot.ps1
+
       # A fresh checkout has no .godot/ cache (it's gitignored), so Godot has
-      # never "opened" the project and global class_name lookups fail until
-      # one full import pass has run. Every CI run starts clean, so this must
-      # run before the tests.
+      # never "opened" the project and global class_name lookups fail until one
+      # full import pass has run. Every CI run starts clean, so this must run
+      # before the tests.
       - name: Import project and check for script errors
+        if: runner.os != 'Windows'
+        # pipefail: without it `tee` masks Godot's own exit status, so a crash
+        # that never prints "SCRIPT ERROR" would still pass this step.
         run: |
-          .godot-bin/godot --headless --editor --quit 2>&1 | tee /tmp/import.log
-          if grep -q "SCRIPT ERROR" /tmp/import.log; then
+          set -o pipefail
+          .godot-bin/godot --headless --editor --quit 2>&1 | tee "$RUNNER_TEMP/import.log"
+          if grep -q "SCRIPT ERROR" "$RUNNER_TEMP/import.log"; then
             echo "::error::Script errors found while importing the project"
             exit 1
           fi
 
+      - name: Import project and check for script errors (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $out = & .godot-bin\godot.cmd --headless --editor --quit 2>&1 | Out-String
+          Write-Host $out
+          if ($out -match "SCRIPT ERROR") {
+            Write-Host "::error::Script errors found while importing the project"
+            exit 1
+          }
+
       - name: Run GUT test suite
+        if: runner.os != 'Windows'
         run: .godot-bin/godot --headless -s addons/gut/gut_cmdln.gd -gconfig=res://.gutconfig.json
+
+      - name: Run GUT test suite (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          & .godot-bin\godot.cmd --headless -s addons/gut/gut_cmdln.gd -gconfig=res://.gutconfig.json
+          exit $LASTEXITCODE

@@ -57,6 +57,7 @@ cache on the pin file).
     "linux":   {"url": "...", "archive": "zip|tar.gz", "bin": "..."},
     "macos":   {"unsupported": "message shown; omit the key for a generic one"}
   },
+  "discover": {"path_names": ["mytool"]},
   "notes":    ["markdown paragraphs placed under 'The binary'"],
   "commands": [{"title": "Run tests", "cmd": "{bin} --headless ...", "note": "optional"}]
 }
@@ -67,6 +68,8 @@ cache on the pin file).
   e.g. `4.7.2.stable.official...` vs `4.7.2-stable`). `version_match` is a
   substring that must appear in the version command's output for the
   idempotency check to pass.
+- `discover.path_names` (optional): command names to look for on PATH when hunting for an install you already have. The env var is always `<NAME>_EXISTING` (e.g. `GODOT_EXISTING`), and `--existing <path>` (`-Existing` in PowerShell) is always available. **A candidate is used only if it reports exactly the pinned version**: `--existing` with a wrong version is an error, and the env var / PATH candidates with a wrong version are skipped with a message and the pinned download is used. Nothing is searched beyond those three places.
+- A macOS `.app` bundle needs no special handling: point `bin` at the program inside it (`Godot.app/Contents/MacOS/Godot`) and the launcher runs it from there.
 - `windows` is required (the `.ps1` is Windows-only; the `.sh` also runs
   under Git Bash and maps it there). `{bin}` in commands becomes
   `<bin_dir>/<name>`.
@@ -82,7 +85,7 @@ mechanics: build a fake tool as a zip and tar.gz (a script that prints
 127.0.0.1`, point a spec's URLs at it, then verify: fresh install, launcher
 output, re-run says "already set up", bump the pin and confirm it re-fetches,
 bad URL fails loudly (non-zero), unsupported platform fails cleanly. The bash
-script takes `SETUP_PLATFORM=linux|macos|windows` to force a branch. Kill the
+script takes `SETUP_PLATFORM=linux|macos|windows` to force a branch. This repo's `tests/run-toolchain-tests.sh` automates exactly this (fresh install, idempotency, pin bump, bad pin, existing-install discovery by flag / env var / PATH, version mismatch, unsupported platform) for both the bash and PowerShell scripts. Kill the
 server afterwards. Then do one real fetch of the actual tool (with the user's
 OK) to confirm the real URL and archive layout.
 
@@ -102,8 +105,7 @@ miss. Use the script itself, not a separate copy of the download logic.
 
 - Single binary per spec. A second tool = a second spec; hand-merge the `run`
   skills.
-- macOS `.app` bundles and installers aren't handled; mark macOS `unsupported`
-  with manual instructions, or extend the template for the bundle layout.
+- Installers (.msi/.pkg/Unity Hub) aren't handled by the download strategy; for those, mark the platform `unsupported` with instructions and rely on `--existing` / the env var, which only verify the version.
 - Verified end to end against a local fake tool (PowerShell and bash, both
   archive types). The Godot spec itself mirrors the repo's proven scripts but
   has not been re-fetched through the generated scripts.
