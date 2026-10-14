@@ -64,3 +64,7 @@ bash tests/run-toolchain-tests.sh
 claude plugin validate .
 ```
 Both test scripts are self-contained and clean up after themselves.
+
+## License
+
+[MIT](LICENSE) © Dave L. Myers
