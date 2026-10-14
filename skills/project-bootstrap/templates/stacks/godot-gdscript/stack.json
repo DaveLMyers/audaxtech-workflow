@@ -1,0 +1,32 @@
+{
+  "name": "godot-gdscript",
+  "kind": "game",
+  "engine": "Godot 4",
+  "language": "GDScript",
+  "tool_spec": "../../../../toolchain-run/examples/godot.spec.json",
+  "status": "field-tested",
+  "status_note": "Extracted from two real Godot projects' working docs and CI. The conventions are rules that came out of real bugs; the CI steps ran in those projects' CI. This module itself has not yet been rendered through a fresh bootstrap run.",
+  "fills": {
+    "{{ENGINE_CONVENTIONS}}": "conventions.md",
+    "{{TESTING_SECTION}}": "testing.md",
+    "{{CI_STEPS}}": "ci-steps.yml"
+  },
+  "gitignore": "gitignore.txt",
+  "optional": {
+    "cross_platform_habits": {
+      "file": "optional/cross-platform-habits.md",
+      "append_to": "CONTRIBUTING.md (inside the game-specific process section)",
+      "when": "the game ships on more than one platform"
+    },
+    "translatable_text": {
+      "file": "optional/translatable-text.md",
+      "append_to": "CONTRIBUTING.md (inside the game-specific process section)",
+      "when": "the game may be played in more than one language"
+    }
+  },
+  "run_commands": [
+    "Tests: .godot-bin/godot --headless -s addons/gut/gut_cmdln.gd -gconfig=res://.gutconfig.json",
+    "Import / script-error check: .godot-bin/godot --headless --editor --quit (then fail on SCRIPT ERROR)"
+  ],
+  "vendored": ["addons/gut (GUT test framework)"]
+}

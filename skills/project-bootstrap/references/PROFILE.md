@@ -25,6 +25,7 @@ bootstrap time.
 | Key | Default | Notes |
 |---|---|---|
 | `kind` | `game` | The project kind: `game` (the default and best-supported path), `web`, `library`, or `other`. Drives the area preset and which kind-specific templates and process sections are added (see `templates/kinds/<kind>/`). Asked first in the interview. |
+| `stack` | asked | The engine/language stack, e.g. `godot-gdscript` (see `templates/stacks/`). Supplies engine conventions, the testing section, CI steps and `.gitignore` lines. A profile default only makes sense if you mostly use one engine. |
 | `identity.github_owner` | asked | Never guessed from the machine. |
 | `identity.default_visibility` | `private` | Applies when the skill creates the repo. |
 | `git.merge_method` | `squash` | `squash` \| `merge` \| `rebase`. Drives CONTRIBUTING text and repo settings. |

@@ -31,7 +31,7 @@ user's account). A failure in the board step must leave a working repo.
 
 ### 1. Interview (one batch of questions, then a single confirmation)
 Ask only what you can't infer from the directory:
-- **Kind first:** is this a game (the default), a web app, a library, or something else? Then, for a game, which engine (Godot, Unity, ...). The kind picks the area preset and the kind-specific templates below; the engine picks the toolchain and conventions.
+- **Kind first:** is this a game (the default), a web app, a library, or something else? Then, for a game, which engine (Godot, Unity, ...). The kind picks the area preset and the kind-specific templates below; the engine picks a **stack** from `templates/stacks/` (today: `godot-gdscript`; read its `stack.json`, including `status`) and the toolchain. No matching stack = say so, fall back to generic text, and offer to write one later - never invent engine conventions.
 - Project name, one-line description, GitHub owner/repo name, public/private.
 - Stack and the real commands to build, test, run (drives CI steps, the
   Testing section, and the `run` step of `pr-check`).
@@ -61,6 +61,7 @@ From `templates/`:
 | `github/PULL_REQUEST_TEMPLATE.md` | `.github/PULL_REQUEST_TEMPLATE.md` |
 | `github/ISSUE_TEMPLATE/*.yml` | `.github/ISSUE_TEMPLATE/` (expand `{{AREA_OPTIONS}}` into lines like `        - area:ui`) |
 | `github/workflows/ci.yml.tmpl` | `.github/workflows/ci.yml` |
+| `stacks/<stack>/*` | The chosen stack's `stack.json` lists what it fills: `conventions.md` -> `{{ENGINE_CONVENTIONS}}`, `testing.md` -> `{{TESTING_SECTION}}`, `ci-steps.yml` -> `{{CI_STEPS}}` (the setup script it calls comes from the `toolchain-run` skill), `gitignore.txt` appended to `.gitignore`. Offer each entry under `optional` (e.g. cross-platform habits, translatable text) and append the ones the user wants to the game-specific CONTRIBUTING section. Mention the stack's `status` honestly. |
 | `kinds/<kind>/*` | Kind-specific additions. For `game` (when `components.game_docs` is on): `DESIGN.md`, `GAMEPLAY.md`, `HOW_TO_PLAY.md` into `docs/`, and `contributing-extra.md` appended to CONTRIBUTING.md via `{{EXTRA_SECTIONS}}` (fill `{{ENGINE_CONVENTIONS}}` with the engine's real conventions from the interview, or a short placeholder note if none are known yet). No `kinds/<kind>/` folder = nothing extra. |
 | *(generated, no template)* | `.claude/workflow.json` - the resolved config (see `references/PROFILE.md`). **Its presence is what turns the plugin's hooks on for this project**, and `components.*` switches them individually. Hooks and `pr-check` are NOT copied into the repo; the plugin owns them. |
 

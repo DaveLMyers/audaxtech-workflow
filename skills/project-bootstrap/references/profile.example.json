@@ -2,6 +2,7 @@
   "version": 1,
 
   "kind": "game",
+  "stack": "godot-gdscript",
 
   "identity": {
     "github_owner": "your-github-login",

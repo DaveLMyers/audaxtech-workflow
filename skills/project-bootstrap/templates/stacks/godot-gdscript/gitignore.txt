@@ -1,0 +1,10 @@
+# Godot 4+
+.godot/
+.import/
+export.cfg
+# export_presets.cfg is committed on purpose when it holds no secrets (CI needs
+# the same preset a local export uses). Re-ignore it if a preset gains keystores
+# or signing config (Android/iOS presets commonly do).
+*.translation
+.mono/
+data_*/

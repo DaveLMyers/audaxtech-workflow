@@ -5,6 +5,7 @@ A Claude Code plugin: an opinionated project workflow, packaged.
 | Piece | What it does |
 |---|---|
 | `project-bootstrap` skill | Scaffolds a repo's process: CONTRIBUTING, DECISIONS log, issue/PR templates, CI skeleton, CLAUDE.md, a GitHub Projects v2 board with columns, priority field and labels. |
+| Stack modules (`skills/project-bootstrap/templates/stacks/`) | Engine/language conventions, testing section, CI steps and ignore rules, chosen at bootstrap. Today: `godot-gdscript` (with optional cross-platform and translatable-text modules). Games are the default kind; add a stack per engine. |
 | `toolchain-run` skill | Generates a pinned, repo-local toolchain setup (version pin, setup scripts, a `run` skill). |
 | `pr-check` skill | The pre-merge checklist: boots it, tests, independent review, live verification, docs. |
 | `github-projects-workflow` skill | Gotchas for driving a Projects v2 board with `gh`. |

@@ -1,0 +1,26 @@
+      - name: Cache Godot binary
+        uses: actions/cache@v4
+        with:
+          path: .godot-bin
+          key: godot-${{ hashFiles('.godot-version') }}-linux
+
+      # Same script a local contributor runs (tools/setup-godot.sh): one
+      # implementation of "how to get Godot", not a second copy of the
+      # download logic that could drift.
+      - name: Set up Godot
+        run: ./tools/setup-godot.sh
+
+      # A fresh checkout has no .godot/ cache (it's gitignored), so Godot has
+      # never "opened" the project and global class_name lookups fail until
+      # one full import pass has run. Every CI run starts clean, so this must
+      # run before the tests.
+      - name: Import project and check for script errors
+        run: |
+          .godot-bin/godot --headless --editor --quit 2>&1 | tee /tmp/import.log
+          if grep -q "SCRIPT ERROR" /tmp/import.log; then
+            echo "::error::Script errors found while importing the project"
+            exit 1
+          fi
+
+      - name: Run GUT test suite
+        run: .godot-bin/godot --headless -s addons/gut/gut_cmdln.gd -gconfig=res://.gutconfig.json
