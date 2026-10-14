@@ -90,7 +90,19 @@ the ask. If the user says to skip playing and push, do that.
   repo's PR template: what changed, why (`Closes #N`), how it was verified (be
   specific, including what the user tried), what was not verified, checklist.
 - If the session has PR tools (`get_status`, `bind_pr`), bind the PR and read CI
-  through them. **Do not poll CI with `gh`.** Offer auto-fix; the user decides.
+  through them. **Do not poll CI** in a loop or with repeated `gh` calls, but **do look**:
+  read the status (`get_status`, or one `gh pr checks`) at the start of every turn while a
+  PR is open, and act on what it says. "Do not poll" never means "do not look".
+- **Waiting for CI.** Offer the app's PR monitor (auto-fix) once: it wakes the session with a
+  `<ci-monitor-event>` when CI fails, so there is nothing to poll. With it off, the user's
+  next message is the wake-up: check status then. Pending CI is not a reason to tell the
+  user you are stuck; say it is pending and what happens next.
+- **A standing instruction such as "merge once CI is green"** is the user's yes for that PR
+  (Gate 2 still applies to any other PR). On each wake-up check status: green means merge
+  and do the section 8 cleanup; red means report it (or fix it, if auto-fix is on) and do
+  not merge; pending means say so and wait.
+- A background-task or "game closed" notification is not an answer from the user. Do not
+  act on it as approval, rejection or a reply to your question.
 - The card should now read In Review (a built-in workflow does it). Check with
   `python scripts/board_status.py N --read`; if it did not move, set `in_review`.
 
