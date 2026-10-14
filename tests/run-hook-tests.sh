@@ -42,6 +42,7 @@ run_hook() {
   else
     OUT=$(echo "$payload" | (cd "$3" && CLAUDE_PROJECT_DIR="$2" bash "$H/$1" 2>&1))
   fi
+  RC=$?
 }
 expect_allow() { # label
   if [ -z "$OUT" ]; then PASS=$((PASS+1)); echo "ok    $1"
@@ -53,6 +54,12 @@ expect_deny() { # label [substring the reason must contain]
   else FAIL=$((FAIL+1)); echo "FAIL  $1  (expected deny${2:+ containing '$2'}, got: ${OUT:0:110})"; fi
 }
 marker() { echo "$1" > "$T/.claude/workflow.json"; }
+# A malformed marker must be loud (message on stderr, non-zero) but must NOT
+# block the command (exit 2 would block; anything else is a non-blocking error).
+expect_warn() { # label
+  if [ "$RC" -ne 0 ] && [ "$RC" -ne 2 ] && echo "$OUT" | grep -q "could not be read"; then PASS=$((PASS+1)); echo "ok    $1"
+  else FAIL=$((FAIL+1)); echo "FAIL  $1  (rc=$RC, expected a non-blocking error naming the problem, got: ${OUT:0:110})"; fi
+}
 
 echo "== opt-in gating: no workflow.json means inert"
 rm -f "$T/.claude/workflow.json"
@@ -125,6 +132,21 @@ run_hook guard-repo-cwd.sh "$T" "$O" 'gh pr create --body "then git push the bra
 run_hook guard-repo-cwd.sh "$T" "$O" 'git commit -m "mentions git push in its message"';  expect_deny  "real commit with a mention in the message"
 run_hook guard-repo-cwd.sh "$T" "$O" 'bash -c "git push origin main"';                     expect_deny  "git push inside bash -c"
 
-rm -rf "$T" "$O" "$FAKEBIN"
+echo "== marker lookup: subfolders count, directories above the repo do not"
+marker '{"version":1,"components":{}}'
+mkdir -p "$T/sub/deeper"
+run_hook guard-repo-cwd.sh "$T/sub/deeper" "$O" "git commit -m x";   expect_deny  "session started in a subfolder of an opted-in repo is still protected" "Blocked"
+OUTER="$(mktemp -d)"; mkdir -p "$OUTER/.claude" "$OUTER/inner"; echo '{"version":1,"components":{}}' > "$OUTER/.claude/workflow.json"; git -C "$OUTER/inner" init -q
+run_hook guard-repo-cwd.sh "$OUTER/inner" "$O" "git commit -m x";    expect_allow "a marker in a directory ABOVE the repo root is ignored"
+
+echo "== a malformed marker is loud, and does not block"
+echo '{ "components": ' > "$T/.claude/workflow.json"
+run_hook guard-repo-cwd.sh "$T" "$O" "git commit -m x";              expect_warn  "cwd guard: malformed marker reports itself"
+run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";                expect_warn  "merge gate: malformed marker reports itself"
+run_hook guard-repo-cwd.sh "$T" "$O" "ls";                           expect_warn  "reported even on an unrelated command (so it is noticed early)"
+marker '{"version":1,"components":{}}'
+run_hook guard-repo-cwd.sh "$T" "$O" "git commit -m x";              expect_deny  "fixing the file restores protection" "Blocked"
+
+rm -rf "$T" "$O" "$FAKEBIN" "$OUTER"
 echo; echo "passed: $PASS   failed: $FAIL"
 [ "$FAIL" -eq 0 ]

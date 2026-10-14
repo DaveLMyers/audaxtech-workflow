@@ -16,7 +16,13 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Inert unless this project opted in (see _project_enabled.py).
-python "$SCRIPT_DIR/_project_enabled.py" merge_gate_hook || exit 0
+gate_rc=0
+python "$SCRIPT_DIR/_project_enabled.py" merge_gate_hook || gate_rc=$?
+case "$gate_rc" in
+  0) ;;            # opted in: carry on
+  3) exit 1 ;;     # marker unreadable: visible (non-blocking) hook error, message already on stderr
+  *) exit 0 ;;     # not opted in / switched off: stay inert
+esac
 
 export HOOK_INPUT="$(cat)"
 
