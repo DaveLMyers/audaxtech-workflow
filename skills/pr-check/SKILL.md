@@ -93,7 +93,8 @@ they go stale. Follow any extra doc rules in the project's CONTRIBUTING.md.
 What changed, why (link the issue with `Closes #N`), and *how it was verified*:
 what was run, what the review and the blind check found and how each finding
 was resolved, what was deferred and why. A reader should be able to trust the
-PR was checked, not just be told so.
+PR was checked, not just be told so. Lead with the answer and keep it as short as the
+story allows (see "Writing docs" in CONTRIBUTING): findings that mattered, not a log.
 
 ## Docs-only changes: a lighter description and review, never a lighter process
 
