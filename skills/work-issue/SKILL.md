@@ -64,11 +64,13 @@ skill's base directory (`scripts/`).
 - Something out of scope turns up (a bug, a gap, follow-up work): note it and file it as
   its own issue; fix it inline only if this change introduced it.
 - **A stray design idea from the user** (a future feature or tweak that is not part of this
-  issue) is not an out-of-scope defect, so do not file an issue for it. Check for
+  issue) is not an out-of-scope defect, so do not file a backlog issue to build it. Check for
   `docs/design-ideas.md`:
   - **It exists:** log the idea there in the user's own words with status `raw`, putting your
-    own analysis under "Context", as its own small docs change (not folded into the current
-    PR). File an issue only when the user says to, or once the idea is `adopted`.
+    own analysis under "Context". The entry is a docs change, so it follows the normal
+    flow (CONTRIBUTING tracks every change) as its own small change, not folded into the
+    current PR; that tracking issue is for logging the idea, not for building it. File an
+    issue to build the idea only when the user says to, or once it is `adopted`.
   - **It does not exist:** say so and offer to add it (`project-bootstrap`'s upgrade mode
     adds the missing game docs). Do not quietly file an issue instead.
   This matches the line in the game CLAUDE.md template: stray design thoughts go in
