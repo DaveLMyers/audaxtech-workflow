@@ -36,6 +36,7 @@ DO="$HERE/../skills/pr-check/scripts/docs_only.py"
 dox() { python "$DO" "$@" 2>&1; }
 is_docs()  { out="$(dox "$@")"; rc=$?; [ $rc -eq 0 ] && [ "$out" = "docs-only" ] && ok "docs-only: $*" || bad "docs-only: $*" "rc=$rc $out"; }
 not_docs() { out="$(dox "$@")"; rc=$?; [ $rc -eq 1 ] && echo "$out" | grep -q "^not docs-only" && ok "NOT docs-only: $*" || bad "NOT docs-only: $*" "rc=$rc $out"; }
+each_not_docs() { local a; for a in "$@"; do not_docs "$a"; done; }
 is_docs docs/DECISIONS.md
 is_docs README.md docs/design.md docs/img/shot.png
 is_docs CONTRIBUTING.md CHANGELOG.md LICENSE
@@ -58,6 +59,45 @@ not_docs README.md.bak
 not_docs docs/../skills/a/SKILL.md
 not_docs ../outside/README.md
 not_docs /etc/README.md
+is_docs docs/a.rst docs/b.markdown docs/c.txt docs/i.jpg docs/i.jpeg docs/i.gif docs/i.svg docs/i.webp docs/i.png
+is_docs Docs/guide.md DOCS/Guide.MD
+is_docs 'docs\guide.md'
+is_docs "docs/my file.md" docs/.notes.md docs/skills.md docs/skills-overview.md docs/myskills/a.md docs/test/a.md docs/scripts.md
+is_docs README README.txt README.rst NOTICE NOTICE.txt SECURITY.md CODE_OF_CONDUCT.md Readme.md license
+is_docs docs/../README.md docs/./x.md docs//x.md docs/sub/../x.md
+not_docs requirements.txt
+not_docs NOTES.md
+not_docs design-ideas.md
+not_docs README.png
+each_not_docs README.py LICENSE.sh CHANGELOG.json
+not_docs docs/SKILL.md
+not_docs SKILL.md
+not_docs docs/skill.md
+not_docs docs/Skills/a.md
+not_docs docs/Templates/page.md
+each_not_docs docs/skills/a.md docs/agents/a.md docs/hooks/a.md docs/commands/a.md docs/scripts/a.md docs/tests/a.md
+not_docs docs/.claude/a.md
+not_docs docs/.github/a.md
+not_docs docs/guide/templates/page.md
+not_docs docs/a/b/hooks/c.md
+not_docs src/docs/api.md
+not_docs docs-old/a.md
+not_docs mydocs/a.md
+not_docs docs.md
+each_not_docs docs/x.pdf docs/x.html
+not_docs docs/notes
+not_docs docs/x.md.bak
+not_docs docs/x.md.tmpl
+each_not_docs logo.png assets/a.svg
+not_docs 'c:docs\x.md'
+not_docs 'docs/sub\..\..\x.md'
+not_docs 'C:\docs\x.md'
+not_docs '\\server\share\docs\x.md'
+each_not_docs .gitattributes .editorconfig Makefile
+not_docs ""
+out="$(dox --base main extra)"; rc=$?; [ $rc -eq 2 ]; chk "--base with an extra argument is a usage error (exit 2)" $? "rc=$rc $out"
+out="$(dox --help)"; rc=$?; [ $rc -eq 2 ]; chk "an unknown flag is a usage error (exit 2)" $? "rc=$rc $out"
+out="$(dox -x)"; rc=$?; [ $rc -eq 2 ]; chk "a leading dash is a usage error, not a path" $? "rc=$rc $out"
 out="$(dox docs/a.md src/b.py skills/c/SKILL.md)"; echo "$out" | grep -q "src/b.py" && echo "$out" | grep -q "skills/c/SKILL.md" && ! echo "$out" | grep -q "docs/a.md"
 chk "the not-docs-only answer names exactly the offending files" $? "$out"
 out="$(dox)"; rc=$?; [ $rc -eq 2 ]; chk "no arguments is a usage error (exit 2)" $? "rc=$rc"
@@ -70,6 +110,28 @@ out="$(cd "$DG" && python "$DO" --base main 2>&1)"; rc=$?
 echo c > "$DG/skills/x/SKILL.md"; git -C "$DG" add skills/x/SKILL.md; git -C "$DG" commit -q -m skill
 out="$(cd "$DG" && python "$DO" --base main 2>&1)"; rc=$?
 [ $rc -eq 1 ] && echo "$out" | grep -q "skills/x/SKILL.md"; chk "...and adding a SKILL.md makes it not docs-only, naming the file" $? "rc=$rc $out"
+# a repo whose base branch moves on after the branch was cut (three-dot semantics), renames, deletions, odd names
+DH="$W/dh"; mkdir -p "$DH/docs" "$DH/skills/x" "$DH/scripts"; git -C "$DH" init -q -b main; git -C "$DH" config user.email t@t; git -C "$DH" config user.name t
+echo a > "$DH/README.md"; echo s > "$DH/skills/x/SKILL.md"; echo r > "$DH/scripts/a.py"; git -C "$DH" add -A; git -C "$DH" commit -q -m base
+git -C "$DH" checkout -q -b topic; echo b > "$DH/docs/new.md"; git -C "$DH" add -A; git -C "$DH" commit -q -m docs
+git -C "$DH" checkout -q main; mkdir -p "$DH/src"; echo c > "$DH/src/x.py"; git -C "$DH" add -A; git -C "$DH" commit -q -m "main moves on"
+git -C "$DH" checkout -q topic
+out="$(cd "$DH" && python "$DO" --base main 2>&1)"; rc=$?
+[ $rc -eq 0 ] && [ "$out" = "docs-only" ]; chk "--base uses the merge base: files changed on main after the branch point are ignored" $? "rc=$rc $out"
+git -C "$DH" mv skills/x/SKILL.md docs/moved.md; git -C "$DH" commit -q -m "move a skill into docs"
+out="$(cd "$DH" && python "$DO" --base main 2>&1)"; rc=$?
+[ $rc -eq 1 ] && echo "$out" | grep -q "skills/x/SKILL.md"; chk "moving a SKILL.md into docs/ is not docs-only: the file that disappeared is listed" $? "rc=$rc $out"
+git -C "$DH" reset -q --hard HEAD~1
+git -C "$DH" rm -q scripts/a.py; git -C "$DH" commit -q -m "delete a script"
+out="$(cd "$DH" && python "$DO" --base main 2>&1)"; rc=$?
+[ $rc -eq 1 ] && echo "$out" | grep -q "scripts/a.py"; chk "deleting a script is not docs-only" $? "rc=$rc $out"
+git -C "$DH" reset -q --hard HEAD~1
+echo d > "$DH/docs/café notes.md"; echo e > "$DH/docs/it's.md"; git -C "$DH" add -A; git -C "$DH" commit -q -m "odd names"
+out="$(cd "$DH" && python "$DO" --base main 2>&1)"; rc=$?
+[ $rc -eq 0 ] && [ "$out" = "docs-only" ]; chk "docs with non-ASCII, space and quote characters in their names are docs-only" $? "rc=$rc $out"
+mkdir -p "$DH/docs/sub"; (cd "$DH/docs/sub" && python "$DO" --base main) >/dev/null 2>&1; [ $? -eq 0 ]; chk "--base from a subfolder gives the same answer" $? ""
+out="$(cd "$DH" && PATH="$W/nowhere" "$(command -v python)" "$DO" --base main 2>&1)"; rc=$?
+[ $rc -eq 2 ]; chk "git missing from PATH is an error (exit 2), not 'not docs-only'" $? "rc=$rc $out"
 git -C "$DG" checkout -q main
 out="$(cd "$DG" && python "$DO" --base main 2>&1)"; rc=$?
 [ $rc -eq 1 ] && echo "$out" | grep -q "no changed files"; chk "a branch with no changes is not docs-only" $? "rc=$rc $out"

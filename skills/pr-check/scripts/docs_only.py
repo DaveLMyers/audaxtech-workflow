@@ -54,10 +54,18 @@ def is_docs_path(path):
 
 
 def changed_files(base):
-    r = subprocess.run(["git", "diff", "--name-only", base + "...HEAD"], capture_output=True, text=True)
+    # --no-renames: a rename lists BOTH the old and the new path, so moving a SKILL.md or a
+    # script into docs/ cannot hide the file that disappeared. -z and quotepath=false: names
+    # with spaces, quotes or non-ASCII letters come back as they are, not quoted and escaped.
+    cmd = ["git", "-c", "core.quotepath=false", "diff", "--name-only", "--no-renames", "-z", base + "...HEAD"]
+    try:
+        r = subprocess.run(cmd, capture_output=True)
+    except OSError as e:
+        raise SystemExit("docs_only: could not run git: %s" % e)
     if r.returncode != 0:
-        raise SystemExit("docs_only: git could not list the changes against %r: %s" % (base, r.stderr.strip()))
-    return [l for l in r.stdout.splitlines() if l.strip()]
+        raise SystemExit("docs_only: git could not list the changes against %r: %s"
+                         % (base, r.stderr.decode("utf-8", "replace").strip()))
+    return [f for f in r.stdout.decode("utf-8", "replace").split("\0") if f.strip()]
 
 
 def main(argv):
@@ -87,4 +95,15 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    # A file name the console cannot print must not turn "not docs-only" (exit 1) into a crash.
+    try:
+        sys.stdout.reconfigure(errors="backslashreplace")
+    except (AttributeError, ValueError):
+        pass
+    try:
+        sys.exit(main(sys.argv[1:]))
+    except SystemExit:
+        raise
+    except Exception as e:  # never let an unexpected crash look like "not docs-only" (exit 1)
+        print("docs_only: unexpected error: %r" % (e,), file=sys.stderr)
+        sys.exit(2)
