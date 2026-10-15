@@ -14,6 +14,8 @@ switched off in workflow.json (`components.<name>: false`) are not reported.
 Limits: file names are compared the way the OS compares them, so on Windows and
 macOS (case-insensitive by default) docs/DESIGN-IDEAS.md counts as docs/design-ideas.md.
 The CLAUDE.md pointer is recognised by the file name appearing anywhere in CLAUDE.md.
+Files are checked for presence only, not content: a .gitattributes that exists but has no
+eol rule is reported as present, so the skill should still read it before saying all is well.
 
 Exit codes: 0 = report produced (even if things are missing), 2 = bad usage or
 the repo directory does not exist.
@@ -86,6 +88,8 @@ def check(repo, kind_arg):
         (present if has_ci else missing).append(
             {"path": ".github/workflows/ci.yml", "what": "CI workflow (no workflow file found)", "template": "github/workflows/ci.yml.tmpl", "type": "file"}
         )
+    want(".gitattributes", "line-ending rules", "gitattributes.txt")
+    want(".editorconfig", "editor basics (charset, line endings)", "editorconfig.txt")
     want(".claude/workflow.json", "the marker that switches the plugin's hooks on", "(generated)")
 
     # Game-only pieces.

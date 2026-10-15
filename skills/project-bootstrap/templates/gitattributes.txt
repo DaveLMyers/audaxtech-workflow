@@ -1,0 +1,27 @@
+# Line endings: text files are LF in the repository and in the working tree, on every
+# OS, so an editor, a shell append and a tool all agree. Without this, a Windows
+# checkout can turn files into CRLF and mixed endings creep in. Scripts that run
+# under bash break with CRLF (the shebang line gets a stray carriage return).
+* text=auto eol=lf
+
+# Scripts that only run on Windows want CRLF.
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Never convert binaries.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.wav binary
+*.ogg binary
+*.mp3 binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.zip binary
+*.pdf binary

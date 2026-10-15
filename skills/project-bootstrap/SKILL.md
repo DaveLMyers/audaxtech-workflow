@@ -61,6 +61,7 @@ From `templates/`:
 | `CLAUDE.md.tmpl` | `CLAUDE.md` |
 | `github/PULL_REQUEST_TEMPLATE.md` | `.github/PULL_REQUEST_TEMPLATE.md` |
 | `github/ISSUE_TEMPLATE/*.yml` (feature, bug, chore, research) | `.github/ISSUE_TEMPLATE/` (expand `{{AREA_OPTIONS}}` into lines like `        - area:ui`) |
+| `gitattributes.txt`, `editorconfig.txt` | `.gitattributes`, `.editorconfig` (LF in the repo and the working tree on every OS, CRLF only for Windows scripts; no indentation rules, since those depend on the language). In an existing repo, never overwrite: if the file is there, show what the template adds and append only the missing rules. **Warn before adding `.gitattributes` to a repo whose files are already CRLF:** Git will then show every text file as modified until `git add --renormalize .` is run, which must be its own commit, never mixed into other work. |
 | `github/workflows/ci.yml.tmpl` | `.github/workflows/ci.yml`. Fill `{{CI_MATRIX}}` from `ci.matrix` (one line per entry: `          - { name: "Linux", os: ubuntu-latest }`); games default to Linux, macOS Intel, macOS Apple Silicon and Windows. Tell the user the cost trade-off (private repos spend the free monthly allowance faster on macOS/Windows) and that `ci.matrix` trims it. |
 | `stacks/<stack>/*` | The chosen stack's `stack.json` lists what it fills: `conventions.md` -> `{{ENGINE_CONVENTIONS}}`, `testing.md` -> `{{TESTING_SECTION}}`, `ci-steps.yml` -> `{{CI_STEPS}}` (the setup script it calls comes from the `toolchain-run` skill), `gitignore.txt` appended to `.gitignore`. Entries under `optional` marked `default: true` (cross-platform habits, translatable text) are included unless the matching component is switched off - say they are on and that they can opt out; append them to the game-specific CONTRIBUTING section. Mention the stack's `status` honestly. |
 | `kinds/<kind>/*` | Kind-specific additions. For `game` (when `components.game_docs` is on): `VISION.md`, `DESIGN.md`, `GAMEPLAY.md`, `HOW_TO_PLAY.md` and `design-ideas.md` into `docs/` (set `{{DATE}}`), `claude-extra.md` into `{{KIND_BULLETS}}` of CLAUDE.md, and `contributing-extra.md` appended to CONTRIBUTING.md via `{{EXTRA_SECTIONS}}` (fill `{{ENGINE_CONVENTIONS}}` with the engine's real conventions from the interview, or a short placeholder note if none are known yet). No `kinds/<kind>/` folder = nothing extra. |
@@ -75,7 +76,7 @@ there; add toolchain setup, build, test), `{{RUN_STEP}}` (how to boot/run it),
 `{{EXTRA_SECTIONS}}` (stack conventions, deployment - or delete the marker).
 If the stack needs a pinned downloadable tool (an engine, compiler, CLI), use the `toolchain-run` skill to generate the setup scripts and the project's `run` skill, and reference it from `{{RUN_STEP}}`/`{{TOOLCHAIN_BULLET}}`.
 Delete unused `{{...}}` lines rather than leaving them. Also write a minimal
-README.md and a `.gitignore` if absent. Keep the root CLAUDE.md short.
+README.md, a `.gitignore` and the two files above if absent. Keep the root CLAUDE.md short.
 
 ### 3. Verify the local files before touching GitHub
 - `.claude/workflow.json` parses as JSON and its `components` keys match `references/PROFILE.md`.
@@ -136,8 +137,9 @@ repo up to date, or when a session in such a repo finds the convention missing.
    `python <this skill's base directory>/scripts/upgrade_check.py <repo> [--kind <kind>]`.
    It is read-only. It reads `.claude/workflow.json` for the kind and components
    (else `--kind`, else it assumes `game` and says so) and lists what is missing:
-   whole files, the "Game-specific process" section of CONTRIBUTING.md, and the
-   CLAUDE.md line that points stray design ideas at `docs/design-ideas.md`.
+   whole files (including `.gitattributes` and `.editorconfig`), the "Game-specific
+   process" section of CONTRIBUTING.md, and the CLAUDE.md line that points stray design
+   ideas at `docs/design-ideas.md`.
 2. **Show the user the report and ask which pieces to add.** Anything the repo
    already has is left alone, even if it differs from the template: the repo's
    own wording wins.

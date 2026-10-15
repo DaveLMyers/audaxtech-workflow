@@ -81,6 +81,14 @@ mechanism - "the report downloads as a CSV" rather than "write exportCsv()".
 Types: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`. Scope is optional
 and usually matches an `area:` label.
 
+## Line endings
+
+Text files use **LF** in the repo and in the working tree (`.gitattributes` and
+`.editorconfig` enforce it; only Windows-only scripts such as `*.ps1` are CRLF). Add to
+a doc with your editor or the Edit tool, not by hand-typing carriage returns, and check
+`git diff` shows only the lines you meant. A file that predates this and is still CRLF
+keeps CRLF for appends until a separate `git add --renormalize .` commit converts it.
+
 ## Pull requests
 
 - Reference the issue it closes (`Closes #12`) - **required**. If work
