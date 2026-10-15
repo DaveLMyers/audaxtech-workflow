@@ -95,6 +95,18 @@ another project reading it). Both need the same things.
 - **Say what is not verified,** plainly, in a short list.
 - **Length follows need.** If a section only restates the code or another doc, link to it.
 
+## Releasing
+
+Installed copies compare `version` in `.claude-plugin/plugin.json`: projects receive changes
+only when it changes, however many commits land on `main` (CI checks it is valid semver).
+Merging without a bump ships nothing.
+
+- Release in its own small PR: bump the version (patch for fixes, minor for new skills or
+  behaviour; stay on 0.x while the README lists unverified flows), merge on green CI, then tag
+  the merge commit `vX.Y.Z`.
+- Then update installed copies: `claude plugin marketplace update audaxtech`, then
+  `claude plugin update audaxtech-workflow@audaxtech`, and restart open sessions.
+
 ## Pull requests
 
 - Reference the issue it closes (`Closes #12`) - **required**. If work

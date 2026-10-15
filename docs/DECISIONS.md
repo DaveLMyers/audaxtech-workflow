@@ -111,3 +111,15 @@ need renegotiating when collaborators join.
 **Why:** A reader has little time and an AI session has only the files; both are served by the reasons and the honest gaps, and both are hurt by facts that quietly become wrong.
 
 **Related:** #21
+
+---
+
+## 2026-10-15 - The plugin has a version, starting at 0.1.0
+
+**Context:** Earlier the version was left empty "for now". With no version, installed copies treat every commit on `main` as a new version, there is no way to hold a bad commit back, and a project cannot tell which copy it has. Three projects now depend on the plugin.
+
+**Decision:** `plugin.json` carries a `version`, starting at 0.1.0 (0.x while the README lists unverified flows). Projects get changes only when it is bumped, in a small release PR followed by a `vX.Y.Z` tag. CI fails if the version is missing or not semver. This replaces the earlier "no version".
+
+**Why:** The bump is a deliberate release gate, so a bad commit on `main` reaches no project until a release. The cost is that a fix merged without a bump ships nothing, which CONTRIBUTING says plainly. A project still cannot stay on an older version while others take a newer one.
+
+**Related:** #23
