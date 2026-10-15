@@ -27,6 +27,8 @@ It encodes one opinionated way of working: every change is an issue on a board, 
 
 Or from a shell: `claude plugin marketplace add DaveLMyers/audaxtech-workflow`, then `claude plugin install audaxtech-workflow@audaxtech`. Restart Claude Code to load it. Skills are then namespaced, e.g. `/audaxtech-workflow:project-bootstrap`.
 
+To update an installed copy: `claude plugin marketplace update audaxtech`, then `claude plugin update audaxtech-workflow@audaxtech`, then restart open sessions. Installed copies update only when the plugin's `version` changes (see `CONTRIBUTING.md`).
+
 Requires `bash`, `python` and `gh` (GitHub CLI, with the `project` scope for board creation) on PATH. On Windows, use Git Bash.
 
 ## Use it

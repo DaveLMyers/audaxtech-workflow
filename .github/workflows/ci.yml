@@ -55,3 +55,6 @@ jobs:
       - name: Delete-guard tests
         shell: bash
         run: bash tests/run-saferm-tests.sh
+      - name: Manifest has a semver version
+        shell: bash
+        run: python tests/check_manifest.py
