@@ -38,7 +38,7 @@ import sys
 
 GAME_DOCS = ["VISION.md", "DESIGN.md", "GAMEPLAY.md", "HOW_TO_PLAY.md", "design-ideas.md"]
 ISSUE_TEMPLATES = ["feature.yml", "bug_report.yml", "chore.yml", "research.yml"]
-GAME_SECTION_RE = re.compile(r"^##[ 	]+Game-specific process\b", re.MULTILINE)  # a level-2 heading, not "###"
+GAME_SECTION_RE = re.compile(r"^##[ \t]+Game-specific process\b", re.MULTILINE | re.IGNORECASE)  # a level-2 heading, not "###"
 IDEAS_POINTER = "design-ideas.md"
 TEMPLATE_EXTRA = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir,
                               "templates", "kinds", "game", "contributing-extra.md")
@@ -47,10 +47,11 @@ HEADING_RE = re.compile(r"^#{1,6}[ \t]+(.+?)[ \t]*$", re.MULTILINE)
 ENGINE_HEADING = "engine conventions"
 # Headings that mean the repo has its own engine/code conventions. A bare "Commit conventions"
 # or "Branch naming conventions" does not count: those say nothing about the engine.
+_CONVENTION_WORDS = r"(?:engine|godot|unity|unreal|gdscript|coding|code|style|language)"
 OWN_CONVENTIONS_RE = re.compile(
     r"cross-platform|translatable"
-    r"|\b(?:engine|godot|unity|unreal|gdscript|coding|code|style|language)\b[^\n]*\bconventions?\b"
-    r"|\bconventions?\b[^\n]*\b(?:engine|godot|unity|unreal|gdscript)\b", re.IGNORECASE)
+    r"|\b" + _CONVENTION_WORDS + r"\b[^\n]*\bconventions?\b"
+    r"|\bconventions?\b[^\n]*\b" + _CONVENTION_WORDS + r"\b", re.IGNORECASE)
 # Other spellings of the template's subsection headings, compared with punctuation removed.
 SUBSECTION_ALIASES = {
     "gamedocs": {"gamedocuments", "gamedocumentation", "gamedesigndocs"},
@@ -89,6 +90,22 @@ def load_marker(repo):
         return {}, ".claude/workflow.json exists but cannot be read (%s); treated as absent" % e
 
 
+def outside_fences(text):
+    """The text without fenced code blocks, so a `# comment` in a code sample is not a heading."""
+    out, fence = [], None
+    for line in text.splitlines():
+        m = re.match(r"^[ \t]{0,3}(`{3,}|~{3,})", line)
+        if m:
+            if fence is None:
+                fence = m.group(1)[0]
+            elif m.group(1)[0] == fence:
+                fence = None
+            continue
+        if fence is None:
+            out.append(line)
+    return "\n".join(out)
+
+
 def template_subsections():
     """Headings of the game template's ### subsections, in order ([] if the template is unreadable)."""
     text = read(TEMPLATE_EXTRA)
@@ -121,15 +138,17 @@ def find_old_hooks(repo):
         if text is None:
             continue
         try:
-            hooks = json.loads(text).get("hooks", {})
-        except (ValueError, AttributeError):
+            data = json.loads(text)
+        except ValueError:
             notes.append(".claude/%s could not be parsed as JSON, so its hooks were not checked: read it yourself" % fname)
             continue
+        hooks = data.get("hooks") if isinstance(data, dict) else None
         if not isinstance(hooks, dict):
             continue
         for event, groups in hooks.items():
             for group in groups if isinstance(groups, list) else []:
-                for h in group.get("hooks", []) if isinstance(group, dict) else []:
+                entries = group.get("hooks") if isinstance(group, dict) else None
+                for h in entries if isinstance(entries, list) else []:
                     cmd = h.get("command") if isinstance(h, dict) else None
                     if not isinstance(cmd, str) or "CLAUDE_PLUGIN_ROOT" in cmd:
                         continue  # the plugin's own entry, not an old copy
@@ -166,6 +185,9 @@ def check(repo, kind_arg):
     components = cfg.get("components") if isinstance(cfg.get("components"), dict) else {}
     on = lambda name: components.get(name, True) is not False
 
+    marker_file = os.path.join(repo, ".claude", "workflow.json")
+    marker = ("missing" if not os.path.isfile(marker_file)
+              else "unreadable" if note else "no kind" if not cfg.get("kind") else "ok")
     kind, kind_source = cfg.get("kind"), "workflow.json"
     if not kind:
         kind, kind_source = (kind_arg, "--kind") if kind_arg else ("game", "assumed (bootstrap default)")
@@ -204,6 +226,7 @@ def check(repo, kind_arg):
             want("docs/" + d, "game doc", "kinds/game/" + d)
         contributing = read(os.path.join(repo, "CONTRIBUTING.md"))
         if contributing is not None:
+            contributing = outside_fences(contributing)
             headings = HEADING_RE.findall(contributing)
             own_conventions = any(OWN_CONVENTIONS_RE.search(h) for h in headings)
             if not GAME_SECTION_RE.search(contributing):
@@ -246,6 +269,7 @@ def check(repo, kind_arg):
         "repo": os.path.abspath(repo),
         "kind": kind,
         "kind_source": kind_source,
+        "marker": marker,
         "note": note,
         "missing": missing,
         "skipped": skipped,
@@ -257,8 +281,10 @@ def check(repo, kind_arg):
 def render(report):
     out = ["Repo: %s" % report["repo"]]
     if report["kind_source"].startswith("assumed"):
-        out.append("Kind: %s (no usable .claude/workflow.json was found, so %s was assumed; pass --kind to say otherwise)"
-                   % (report["kind"], report["kind"]))
+        why = (".claude/workflow.json has no kind" if report.get("marker") == "no kind"
+               else "no usable .claude/workflow.json was found")
+        out.append("Kind: %s (%s, so %s was assumed; pass --kind to say otherwise)"
+                   % (report["kind"], why, report["kind"]))
     else:
         out.append("Kind: %s (from %s)" % (report["kind"], report["kind_source"]))
     if report["note"]:
@@ -294,6 +320,10 @@ def main(argv):
     ap.add_argument("--kind", choices=["game", "web", "library", "tool", "other"])
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args(argv)
+    try:
+        sys.stdout.reconfigure(errors="backslashreplace")
+    except (AttributeError, ValueError):
+        pass
     if not os.path.isdir(args.repo):
         print("not a directory: %s" % args.repo, file=sys.stderr)
         return 2

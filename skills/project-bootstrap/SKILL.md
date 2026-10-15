@@ -212,9 +212,9 @@ repo up to date, or when a session in such a repo finds the convention missing.
    the issue (`Closes #N`); an upgrade usually has none. Either file a small issue for it
    first (and put it on the board if there is one) so the PR can close it, or, if the user
    declines, replace that line with "No tracking issue: bootstrap upgrade, requested
-   directly by <owner>" rather than leaving the placeholder or inventing a number. It is a
-   docs/config change, so the lighter docs-only PR description applies (see `pr-check`);
-   run `pr-check` before calling it ready.
+   directly by <owner>" rather than leaving the placeholder or inventing a number. Run `pr-check` before calling it ready. An upgrade adds files under `.github/` and
+   `.claude/`, which `docs_only.py` never counts as docs-only, so expect the full process
+   unless the PR really touches only docs.
 
 ## Notes / known limits
 - Hooks assume `bash` and `python` on PATH (true under Git Bash on Windows).
