@@ -76,7 +76,7 @@ there; add toolchain setup, build, test), `{{RUN_STEP}}` (how to boot/run it),
 `{{EXTRA_SECTIONS}}` (stack conventions, deployment - or delete the marker).
 If the stack needs a pinned downloadable tool (an engine, compiler, CLI), use the `toolchain-run` skill to generate the setup scripts and the project's `run` skill, and reference it from `{{RUN_STEP}}`/`{{TOOLCHAIN_BULLET}}`.
 Delete unused `{{...}}` lines rather than leaving them. Also write a minimal
-README.md, a `.gitignore` and the two files above if absent. Keep the root CLAUDE.md short.
+README.md (it starts with what the project is, how to use it and what to rely on), a `.gitignore` and the two files above if absent. Keep the root CLAUDE.md short.
 
 ### 3. Verify the local files before touching GitHub
 - `.claude/workflow.json` parses as JSON and its `components` keys match `references/PROFILE.md`.
