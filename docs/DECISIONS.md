@@ -63,3 +63,15 @@ need renegotiating when collaborators join.
 **Why:** A structural check beats remembering to pin the working directory. Deleting inside temp folders stays possible, because the suites need it to clean up.
 
 **Related:** PR #14
+
+---
+
+## 2026-10-15 - board_status.py: --repo takes a folder or owner/name
+
+**Context:** Issue #5: the script found the project's `.claude/workflow.json` only by searching up from the current folder, but `work-issue` told sessions to run it from the skill's own folder, which is not inside the project.
+
+**Decision:** `--repo` accepts either the project's folder or `owner/name` (a value that is an existing folder is the project; otherwise it must contain a `/`). `--project-dir` stays as the same thing under its older name. The skill now passes `--repo <path to the project>`, and the "no workflow.json" error names the folders it searched and suggests `--repo`.
+
+**Why:** Overloading `--repo` matches how the issue asked for it and keeps the old `owner/name` form working; a folder is unambiguous because a real folder wins. Anything that is neither a folder nor a strict `owner/name` (an owner starts with a letter or digit, then exactly one `/`) is rejected, so a mistyped path such as `../projx` fails clearly instead of becoming a GitHub 404. An explicit folder that does not exist is an error rather than a search from its nearest existing parent.
+
+**Related:** #5

@@ -4,8 +4,14 @@
 Usage:
   board_status.py <issue-number> <role>            set Status to a role
   board_status.py <issue-number> --read            print the current Status
-  options: --repo owner/name   (default: the repo of the project directory)
-           --project-dir PATH  (default: $CLAUDE_PROJECT_DIR, else cwd)
+  options: --repo PATH|owner/name
+               PATH  = the project's folder: the script reads its .claude/workflow.json
+                       and asks git/gh from there, so it works from any directory.
+                       owner/name = the GitHub repo (the project is then found as below).
+                       Anything else, such as a mistyped path, is rejected.
+           --project-dir PATH  (the project's folder; same as --repo PATH)
+         With neither: $CLAUDE_PROJECT_DIR, else the current directory, searching up
+         from there for .claude/workflow.json (stopping at the repo root).
 
 <role> is one of: backlog, ready, in_progress, in_review, done. Board ids and
 the role -> column-name mapping come from .claude/workflow.json
@@ -22,11 +28,14 @@ Exit codes: 0 ok | 2 bad usage/config | 3 --read and not on the board | 4 verify
 """
 import json
 import os
+import re
 import shlex
 import shutil
 import subprocess
 import sys
 
+# GitHub owner/name: an owner starts with a letter or digit, so "../x" or "C:/x/y" is never one.
+OWNER_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9_.-]+$")
 ROLES = ("backlog", "ready", "in_progress", "in_review", "done")
 
 
@@ -53,16 +62,19 @@ def gh(*args, cwd=None):
 
 
 def find_config(start):
+    """(path or None, folders searched). Walks up from start to the repo root."""
     d = os.path.abspath(start)
+    searched = []
     while True:
+        searched.append(d)
         p = os.path.join(d, ".claude", "workflow.json")
         if os.path.isfile(p):
-            return p
+            return p, searched
         if os.path.exists(os.path.join(d, ".git")):
-            return None
+            return None, searched
         parent = os.path.dirname(d)
         if parent == d:
-            return None
+            return None, searched
         d = parent
 
 
@@ -77,16 +89,20 @@ def current_status(item_id, cwd):
 def main(argv):
     args = list(argv)
     repo = None
-    project_dir = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
+    env_dir = os.environ.get("CLAUDE_PROJECT_DIR")
+    project_dir = env_dir or os.getcwd()
+    dir_source = "$CLAUDE_PROJECT_DIR" if env_dir else "the current directory"
     read_only = False
     pos = []
     i = 0
     while i < len(args):
         a = args[i]
+        if a in ("--repo", "--project-dir") and i + 1 >= len(args):
+            raise Fail("%s needs a value" % a, 2)
         if a == "--repo":
             repo = args[i + 1]; i += 2
         elif a == "--project-dir":
-            project_dir = args[i + 1]; i += 2
+            project_dir = args[i + 1]; dir_source = "--project-dir"; i += 2
         elif a == "--read":
             read_only = True; i += 1
         else:
@@ -98,9 +114,18 @@ def main(argv):
     if role is not None and role not in ROLES:
         raise Fail("unknown role %r (expected one of: %s)" % (role, ", ".join(ROLES)), 2)
 
-    cfg_path = find_config(project_dir)
+    if repo and os.path.isdir(repo):
+        project_dir, dir_source, repo = repo, "--repo", None
+    elif repo and not OWNER_NAME.match(repo):
+        raise Fail("--repo %r is neither an existing folder nor owner/name (a mistyped path ends up here)" % repo, 2)
+    if not os.path.isdir(project_dir):
+        raise Fail("%s %r is not a folder that exists" % (dir_source, project_dir), 2)
+
+    cfg_path, searched = find_config(project_dir)
     if not cfg_path:
-        raise Fail("no .claude/workflow.json found from %s: this project has no board config" % project_dir, 2)
+        raise Fail("no .claude/workflow.json found searching up from %s (%s; looked in %d folder%s, "
+                   "ending at %s). Run it from inside the project, or pass --repo <path to the project>."
+                   % (project_dir, dir_source, len(searched), "" if len(searched) == 1 else "s", searched[-1]), 2)
     try:
         board = json.load(open(cfg_path, encoding="utf-8"))["board"]
         owner, num, pid = board["owner"], board["number"], board["project_id"]
