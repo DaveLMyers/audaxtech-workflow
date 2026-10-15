@@ -47,18 +47,23 @@ Personal defaults (GitHub owner, merge method, board columns, CI matrix, compone
 
 ## What is verified, and what is not
 
-This was extracted from two real Godot projects and then tested piece by piece.
+This was extracted from two real Godot projects and then tested piece by piece. All five test suites run in CI on Linux, macOS (Apple Silicon) and Windows on every PR and push to `main`, and are green on all three; locally they are run on Windows with Git Bash. The counts below are from the latest run.
 
-**Tested:** the hooks (65 cases, `tests/run-hook-tests.sh`, each fix sabotage-checked), the `work-issue` helper scripts for board status and branch naming (142 cases against a fake `gh`, including `create-board.sh`'s saved views, `tests/run-workissue-tests.sh`, plus a live read and write against a real board), the upgrade check for older repos (46 cases against throwaway repos, including the older layout from issue #3, `tests/run-bootstrap-tests.sh`), the delete guard the suites use (`tests/_safe_rm.sh`, 21 cases, `tests/run-saferm-tests.sh`), the toolchain generator for both bash and PowerShell, including fresh install, version bump, bad pin, and reuse of an existing install by flag, env var and PATH (20 cases, `tests/run-toolchain-tests.sh`, which serves a fake tool from localhost), and the merge gate live in a real repository.
+**Tested:**
+- the hooks: 65 cases, `tests/run-hook-tests.sh`, each fix sabotage-checked, including the merge gate's fallback where there is no GNU `timeout` (stock macOS), which CI found; the merge gate has also been used live in a real repository;
+- `work-issue`'s helper scripts and `pr-check`'s `docs_only.py` classifier: 142 cases against a fake `gh` and throwaway git repos, `tests/run-workissue-tests.sh`. These cover board status and branch naming (plus a live read and write against a real board), `create-board.sh`'s saved views, and what counts as docs-only;
+- `project-bootstrap`'s upgrade check and its line-ending templates: 46 cases against throwaway repos, including the older layout from issue #3, `tests/run-bootstrap-tests.sh`;
+- the delete guard the suites use (`tests/_safe_rm.sh`): 21 cases, `tests/run-saferm-tests.sh`; the symlink case is skipped where symlinks are not available, as on the Windows setup used here;
+- the toolchain generator for bash and PowerShell, including fresh install, version bump, bad pin, and reuse of an existing install by flag, env var and PATH: 20 cases against a fake tool served from localhost, `tests/run-toolchain-tests.sh` (its PowerShell half runs only on Windows).
 
 **Not yet verified:**
-- `create-board.sh`'s view step against a live board end to end (the `createProjectV2View` call was used by hand on a real board; the "Table" rename via `updateProjectV2View` has only run against the fake `gh`);
+- the skills' prose steps have not been run end to end: upgrade mode's step that appends the missing pieces (only its report is tested), the lighter docs-only path, the `work-issue` guidance on CI after a PR opens, visual tuning loops and stray design ideas, and writing `.gitattributes` and `.editorconfig` into a brand-new project (the templates are checked, a fresh bootstrap run is not);
+- `create-board.sh`'s view step against a live new board end to end (the `createProjectV2View` call was used by hand on a real board; the "Table" rename via `updateProjectV2View` has only run against the fake `gh`);
 - the cwd guard triggered live (unit-tested only: a stale `cd` cannot be reproduced in the harness);
 - the macOS Godot download path (the URL and bundle layout come from a working setup but have not been fetched by the generated script);
-- the three-OS CI matrix on GitHub Actions;
 - the Godot stack module rendered through a fresh bootstrap run;
-- anything on Linux or macOS: it has been developed and tested on Windows with Git Bash.
-- There is no Unity (or other engine) stack yet.
+- the skills and agents on Linux and macOS: the test suites pass there in CI, but the interactive flows have only been used on Windows with Git Bash;
+- there is no Unity (or other engine) stack yet.
 
 ## Tests
 
@@ -70,7 +75,7 @@ bash tests/run-bootstrap-tests.sh
 bash tests/run-saferm-tests.sh
 claude plugin validate .
 ```
-Both test scripts are self-contained and clean up after themselves.
+All the test scripts are self-contained and clean up after themselves (they delete only through the guard above).
 
 ## License
 
