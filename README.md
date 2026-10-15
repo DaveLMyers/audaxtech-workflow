@@ -47,18 +47,16 @@ Personal defaults (GitHub owner, merge method, board columns, CI matrix, compone
 
 ## What is verified, and what is not
 
-This was extracted from two real Godot projects and then tested piece by piece.
-
-**Tested:** the hooks (65 cases, `tests/run-hook-tests.sh`, each fix sabotage-checked), the `work-issue` helper scripts for board status and branch naming (142 cases against a fake `gh`, including `create-board.sh`'s saved views, `tests/run-workissue-tests.sh`, plus a live read and write against a real board), the upgrade check for older repos (46 cases against throwaway repos, including the older layout from issue #3, `tests/run-bootstrap-tests.sh`), the delete guard the suites use (`tests/_safe_rm.sh`, 21 cases, `tests/run-saferm-tests.sh`), the toolchain generator for both bash and PowerShell, including fresh install, version bump, bad pin, and reuse of an existing install by flag, env var and PATH (20 cases, `tests/run-toolchain-tests.sh`, which serves a fake tool from localhost), and the merge gate live in a real repository.
+Extracted from two real Godot projects, then tested piece by piece. CI runs all five test suites in `tests/` on Linux, macOS and Windows for every PR and is green on all three; it is the source of truth for what passes, and each suite's header says what it covers. Locally the suites are run on Windows with Git Bash.
 
 **Not yet verified:**
-- `create-board.sh`'s view step against a live board end to end (the `createProjectV2View` call was used by hand on a real board; the "Table" rename via `updateProjectV2View` has only run against the fake `gh`);
+- the skills' prose steps run end to end: upgrade mode's append step, the lighter docs-only path, writing the line-ending files into a brand-new project, and the recent `work-issue` guidance (CI after a PR opens, visual tuning loops, stray design ideas);
+- `create-board.sh` against a live new board (its view step has only run against a fake `gh`);
 - the cwd guard triggered live (unit-tested only: a stale `cd` cannot be reproduced in the harness);
 - the macOS Godot download path (the URL and bundle layout come from a working setup but have not been fetched by the generated script);
-- the three-OS CI matrix on GitHub Actions;
 - the Godot stack module rendered through a fresh bootstrap run;
-- anything on Linux or macOS: it has been developed and tested on Windows with Git Bash.
-- There is no Unity (or other engine) stack yet.
+- the interactive flows on Linux and macOS (the suites pass there; the flows have only been used on Windows with Git Bash);
+- there is no Unity (or other engine) stack yet.
 
 ## Tests
 
@@ -70,7 +68,7 @@ bash tests/run-bootstrap-tests.sh
 bash tests/run-saferm-tests.sh
 claude plugin validate .
 ```
-Both test scripts are self-contained and clean up after themselves.
+All the test scripts are self-contained and clean up after themselves (they delete only through `tests/_safe_rm.sh`).
 
 ## License
 
