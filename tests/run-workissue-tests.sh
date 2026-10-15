@@ -117,6 +117,27 @@ reset; mkdir -p "$W/bare"; git -C "$W/bare" init -q
 out="$(python "$S/board_status.py" 7 ready --project-dir "$W/bare" 2>&1)"; rc=$?
 [ $rc -eq 2 ] && echo "$out" | grep -q "no .claude/workflow.json" && ok "project without workflow.json: clear error (exit 2)" || bad "no config" "rc=$rc $out"
 
+echo "== board status: finding the project from anywhere (issue #5)"
+mkdir -p "$W/elsewhere"
+bsx() { (cd "$W/elsewhere" && env -u CLAUDE_PROJECT_DIR python "$S/board_status.py" "$@" 2>&1); }
+reset; touch "$W/onboard"; echo "In Progress" > "$W/status"
+out="$(bsx 7 --read --repo "$W/proj")"; rc=$?
+[ $rc -eq 0 ] && [ "$out" = "#7 -> In Progress" ] && ok "--repo <path> works from a directory outside the project" || bad "--repo path from elsewhere" "rc=$rc $out"
+out="$(bsx 7 --read --project-dir "$W/proj")"; rc=$?
+[ $rc -eq 0 ] && [ "$out" = "#7 -> In Progress" ] && ok "--project-dir still works the same way" || bad "--project-dir" "rc=$rc $out"
+out="$(cd "$W/elsewhere" && CLAUDE_PROJECT_DIR="$WN/proj" python "$S/board_status.py" 7 --read 2>&1)"; rc=$?
+[ $rc -eq 0 ] && [ "$out" = "#7 -> In Progress" ] && ok "\$CLAUDE_PROJECT_DIR is used when no flag is given" || bad "env var" "rc=$rc $out"
+out="$(cd "$W/elsewhere" && CLAUDE_PROJECT_DIR="$WN/bare" python "$S/board_status.py" 7 --read --repo "$W/proj" 2>&1)"; rc=$?
+[ $rc -eq 0 ] && [ "$out" = "#7 -> In Progress" ] && ok "--repo <path> beats a \$CLAUDE_PROJECT_DIR that points elsewhere" || bad "flag beats env" "rc=$rc $out"
+out="$(bsx 7 --read)"; rc=$?
+[ $rc -eq 2 ] && echo "$out" | grep -q "no .claude/workflow.json" && echo "$out" | grep -q "elsewhere" && echo "$out" | grep -q -- "--repo <path to the project>"
+chk_e=$?; [ $chk_e -eq 0 ] && ok "no config found: the error names where it looked and suggests --repo" || bad "error message" "rc=$rc $out"
+out="$(bsx 7 --read --repo not-a-folder)"; rc=$?
+[ $rc -eq 2 ] && echo "$out" | grep -q "neither a folder nor owner/name" && ok "--repo with neither a folder nor owner/name is rejected" || bad "bad --repo" "rc=$rc $out"
+reset; touch "$W/onboard"
+out="$(bs 7 --read --repo me/demo)"; rc=$?
+[ $rc -eq 0 ] && grep -q "o=me" "$W/calls.log" && grep -q "r=demo" "$W/calls.log" && ok "--repo owner/name still names the GitHub repo" || bad "--repo owner/name" "rc=$rc $out $(cat "$W/calls.log")"
+
 reset; python - "$W/proj/.claude/workflow.json" <<'PYEOF'
 import json,sys
 p=sys.argv[1]; d=json.load(open(p)); del d["board"]["fields"]["status"]["options"]["done"]; json.dump(d,open(p,"w"))

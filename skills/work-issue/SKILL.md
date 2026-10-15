@@ -16,8 +16,11 @@ description: >-
 The user will usually say one sentence, such as "work issue #90". This file is
 everything they would otherwise have to say. **The project's CONTRIBUTING.md is
 canonical** for project rules (branch and commit format, docs rules, testing);
-this skill orchestrates and defers to it. Run the helper scripts from this
-skill's base directory (`scripts/`).
+this skill orchestrates and defers to it. The helper scripts live in this skill's
+`scripts/` folder: call them by that path, and pass `--repo <path to the project>` to
+`board_status.py` so it finds the project's `.claude/workflow.json` no matter which
+folder you run it from (without it, it searches up from `$CLAUDE_PROJECT_DIR`, else the
+current folder, which is not the project when you are in the skill's folder).
 
 ## 0. Is this the right job?
 - Needs an issue number, or a title that matches exactly one open issue
@@ -43,7 +46,7 @@ skill's base directory (`scripts/`).
 
 ## 2. Start
 1. Bring the base branch current: `git -C <repo> fetch`, `checkout <base>`, `pull --ff-only`.
-2. **Move the card to In Progress:** `python scripts/board_status.py N in_progress`.
+2. **Move the card to In Progress:** `python scripts/board_status.py N in_progress --repo <path to the project>`.
    It adds the issue to the board if it is missing, uses the ids in `workflow.json`,
    and reads the status back. A non-zero exit means stop and report it; do not
    carry on assuming the board is right. No board configured: skip and say so.
@@ -132,7 +135,7 @@ per launch:
 - A background-task or "game closed" notification is not an answer from the user. Do not
   act on it as approval, rejection or a reply to your question.
 - The card should now read In Review (a built-in workflow does it). Check with
-  `python scripts/board_status.py N --read`; if it did not move, set `in_review`.
+  `python scripts/board_status.py N --read --repo <path to the project>`; if it did not move, set `in_review`.
 
 ## 6. pr-check
 Run the `pr-check` skill on the PR. Fix what it finds in this PR; defer only with a
@@ -147,7 +150,7 @@ in an earlier turn, or for a different PR, is not a yes for this one.
 ## 8. After an explicit yes
 1. `gh pr merge N --squash`. (The plugin's merge gate checks CI; do not work around a denial.)
 2. **Verify:** PR is MERGED, the issue is closed, and the card is Done
-   (`board_status.py N --read`; set `done` if the automation missed, which it has before).
+   (`board_status.py N --read --repo <path to the project>`; set `done` if the automation missed, which it has before).
 3. Back to the base branch: `checkout`, `pull --ff-only`, delete your local branch
    (`-D`: a squash merge is not an ancestor), and confirm the remote branch is gone with
    `git ls-remote --heads origin <branch>` (remote-tracking refs can be stale, so do
