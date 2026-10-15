@@ -108,6 +108,10 @@ keeps CRLF for appends until a separate `git add --renormalize .` commit convert
   large/risky/wide changes, medium by default for real logic, lighter (or a
   quick sanity check) for doc-only edits, one-line typing fixes, config
   values, comments.
+- A **docs-only** PR (the `pr-check` skill defines it and has a script that checks) may use a
+  one-paragraph description and a quick read-through in place of the full review. Every
+  tracked step still applies: the issue, the board, the branch, green CI, and the owner's
+  yes to merge. A skill, template, `CLAUDE.md` or script is never docs-only.
 - Before calling any PR ready to merge, run the `pr-check` skill (from the
   audaxtech-workflow plugin; it reads `.claude/workflow.json` and this file).
 - CI (`.github/workflows/ci.yml`) runs on every PR and push to `main`. Private

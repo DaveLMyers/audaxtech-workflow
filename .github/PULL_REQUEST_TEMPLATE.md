@@ -1,3 +1,6 @@
+<!-- Docs-only change (pr-check's docs_only.py says so)? One paragraph is enough: what, why
+     with Closes #N, that it is docs-only, and what you read through. Delete the sections below. -->
+
 ## What
 
 <!-- What changed, in plain terms. -->

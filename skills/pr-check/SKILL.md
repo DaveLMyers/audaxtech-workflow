@@ -94,7 +94,27 @@ what was run, what the review and the blind check found and how each finding
 was resolved, what was deferred and why. A reader should be able to trust the
 PR was checked, not just be told so.
 
-## Only after all six
+## Docs-only changes: a lighter description and review, never a lighter process
+
+Run `python <this skill's base directory>/scripts/docs_only.py --base <base branch>`. It
+says "docs-only" only when every changed file is prose people read and nothing runs or
+steers Claude: Markdown or text under `docs/` (and images there), and the root README,
+CONTRIBUTING, CHANGELOG, LICENSE and similar files. A skill's `SKILL.md`, an agent
+definition, a template, `CLAUDE.md`, an issue or PR template, anything under `skills/`,
+`agents/`, `hooks/`, `.claude/` or `.github/`, scripts, tests and config are **not**
+docs-only even though they are often Markdown: they change what runs or what Claude does.
+If the script says "not docs-only", or you are unsure, do the full checklist above.
+
+For a docs-only change, every tracked step stays: the issue, the board move, the branch,
+the PR, green CI, and the owner's explicit yes to merge. What gets lighter:
+- **Steps 2 and 4** (tests, running it) do not apply: there is nothing to run.
+- **Step 3** becomes a quick read-through of the diff instead of `/code-review`: broken
+  links and cross-references, wrong facts, text that contradicts another doc, stale names.
+- **Step 6** becomes a one-paragraph description: what changed, why (`Closes #N`), that it
+  is docs-only, and what you read through. No "how it was verified" essay, no checklist.
+- **Step 5** is the change itself: check the docs it touches still agree with the rest.
+
+## Only after all six (or, for a docs-only change, the lighter version above)
 
 Then it is fair to tell the user the PR is ready to merge, and to surface the
 merge decision. If you're unsure whether a step applies, do it - the cost of an

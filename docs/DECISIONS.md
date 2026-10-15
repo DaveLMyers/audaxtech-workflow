@@ -87,3 +87,15 @@ need renegotiating when collaborators join.
 **Why:** One ending everywhere means an editor, a shell append and a tool all produce the same bytes, which is the whole fix; LF is also the only ending bash scripts tolerate. The cost is that Windows-only tools which insist on CRLF need an explicit rule, which the CRLF entries cover. This is the same rule this repo already uses.
 
 **Related:** #6
+
+---
+
+## 2026-10-15 - Docs-only PRs get a lighter description and review, never a lighter process
+
+**Context:** Issue #7: a single new 33-line markdown file went through the full issue, board, branch, commit, push, PR, review, merge and cleanup sequence, and CONTRIBUTING says there are no exceptions for small work. The owner chose the middle path.
+
+**Decision:** Every tracked step stays (issue, board move, branch, PR, green CI, the owner's explicit yes to merge). For a docs-only change, `pr-check` and `work-issue` use a one-paragraph PR description and a quick read-through of the diff in place of the full description and `/code-review`. "Docs-only" is decided by a script (`skills/pr-check/scripts/docs_only.py`), not by feel: every changed file must be prose under `docs/` or a root README, CONTRIBUTING, CHANGELOG or LICENSE. A skill's `SKILL.md`, an agent, a template, `CLAUDE.md`, a script, a test or any config is never docs-only, even when it is Markdown, because it changes what runs or what Claude does. When unsure, the full process applies.
+
+**Why:** The tracking steps are what the no-exceptions rule protects; the savings are in the description and the review. A script keeps "docs-only" from becoming a judgment call that quietly widens.
+
+**Related:** #7
