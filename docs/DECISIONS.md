@@ -72,6 +72,6 @@ need renegotiating when collaborators join.
 
 **Decision:** `--repo` accepts either the project's folder or `owner/name` (a value that is an existing folder is the project; otherwise it must contain a `/`). `--project-dir` stays as the same thing under its older name. The skill now passes `--repo <path to the project>`, and the "no workflow.json" error names the folders it searched and suggests `--repo`.
 
-**Why:** Overloading `--repo` matches how the issue asked for it and keeps the old `owner/name` form working; a folder is unambiguous because a real folder wins.
+**Why:** Overloading `--repo` matches how the issue asked for it and keeps the old `owner/name` form working; a folder is unambiguous because a real folder wins. Anything that is neither a folder nor a strict `owner/name` (an owner starts with a letter or digit, then exactly one `/`) is rejected, so a mistyped path such as `../projx` fails clearly instead of becoming a GitHub 404. An explicit folder that does not exist is an error rather than a search from its nearest existing parent.
 
 **Related:** #5

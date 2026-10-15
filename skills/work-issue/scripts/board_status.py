@@ -8,6 +8,7 @@ Usage:
                PATH  = the project's folder: the script reads its .claude/workflow.json
                        and asks git/gh from there, so it works from any directory.
                        owner/name = the GitHub repo (the project is then found as below).
+                       Anything else, such as a mistyped path, is rejected.
            --project-dir PATH  (the project's folder; same as --repo PATH)
          With neither: $CLAUDE_PROJECT_DIR, else the current directory, searching up
          from there for .claude/workflow.json (stopping at the repo root).
@@ -27,11 +28,14 @@ Exit codes: 0 ok | 2 bad usage/config | 3 --read and not on the board | 4 verify
 """
 import json
 import os
+import re
 import shlex
 import shutil
 import subprocess
 import sys
 
+# GitHub owner/name: an owner starts with a letter or digit, so "../x" or "C:/x/y" is never one.
+OWNER_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9_.-]+$")
 ROLES = ("backlog", "ready", "in_progress", "in_review", "done")
 
 
@@ -93,6 +97,8 @@ def main(argv):
     i = 0
     while i < len(args):
         a = args[i]
+        if a in ("--repo", "--project-dir") and i + 1 >= len(args):
+            raise Fail("%s needs a value" % a, 2)
         if a == "--repo":
             repo = args[i + 1]; i += 2
         elif a == "--project-dir":
@@ -110,8 +116,10 @@ def main(argv):
 
     if repo and os.path.isdir(repo):
         project_dir, dir_source, repo = repo, "--repo", None
-    elif repo and "/" not in repo:
-        raise Fail("--repo %r is neither a folder nor owner/name" % repo, 2)
+    elif repo and not OWNER_NAME.match(repo):
+        raise Fail("--repo %r is neither an existing folder nor owner/name (a mistyped path ends up here)" % repo, 2)
+    if not os.path.isdir(project_dir):
+        raise Fail("%s %r is not a folder that exists" % (dir_source, project_dir), 2)
 
     cfg_path, searched = find_config(project_dir)
     if not cfg_path:

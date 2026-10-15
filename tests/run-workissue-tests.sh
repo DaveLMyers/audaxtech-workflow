@@ -13,6 +13,7 @@ PASS=0; FAIL=0
 ok()  { PASS=$((PASS+1)); echo "ok    $1"; }
 bad() { FAIL=$((FAIL+1)); echo "FAIL  $1  (${2:0:240})"; }
 eq()  { [ "$2" = "$3" ] && ok "$1" || bad "$1" "expected '$3' got '$2'"; }
+chk() { [ "$2" -eq 0 ] && ok "$1" || bad "$1" "$3"; }
 
 echo "== branch names"
 bn() { python "$S/branch_name.py" "$@"; }
@@ -45,7 +46,7 @@ cat > "$W/fake_gh.py" <<'EOF'
 import json, os, sys
 st = os.environ["FAKE_STATE"]
 args = sys.argv[1:]
-open(os.path.join(st, "calls.log"), "a").write(" ".join(args) + "\n")
+open(os.path.join(st, "calls.log"), "a").write(" ".join(args) + " @cwd=" + os.path.basename(os.getcwd()) + "\n")
 flag = lambda n: os.environ.get(n, "0") == "1"
 def out(s): print(s); sys.exit(0)
 joined = " ".join(args)
@@ -74,7 +75,7 @@ EOF
 WN="$(cygpath -m "$W" 2>/dev/null || echo "$W")"        # native-style path for the python-based fake
 export AUDAX_GH="python $WN/fake_gh.py" FAKE_STATE="$WN"
 reset() { safe_rm "$W/onboard" "$W/calls.log"; echo "Backlog" > "$W/status"; touch "$W/calls.log"; unset FAKE_NO_ISSUE FAKE_OTHER_PROJECT FAKE_ADD_OUT FAKE_EDIT_NOOP; }
-bs() { python "$S/board_status.py" "$@" --project-dir "$W/proj" 2>&1; }
+bs() { env -u CLAUDE_PROJECT_DIR python "$S/board_status.py" "$@" --project-dir "$W/proj" 2>&1; }
 
 reset; touch "$W/onboard"
 out="$(bs 7 in_progress)"; rc=$?
@@ -133,7 +134,48 @@ out="$(bsx 7 --read)"; rc=$?
 [ $rc -eq 2 ] && echo "$out" | grep -q "no .claude/workflow.json" && echo "$out" | grep -q "elsewhere" && echo "$out" | grep -q -- "--repo <path to the project>"
 chk_e=$?; [ $chk_e -eq 0 ] && ok "no config found: the error names where it looked and suggests --repo" || bad "error message" "rc=$rc $out"
 out="$(bsx 7 --read --repo not-a-folder)"; rc=$?
-[ $rc -eq 2 ] && echo "$out" | grep -q "neither a folder nor owner/name" && ok "--repo with neither a folder nor owner/name is rejected" || bad "bad --repo" "rc=$rc $out"
+[ $rc -eq 2 ] && echo "$out" | grep -q "neither an existing folder nor owner/name" && ok "--repo with neither a folder nor owner/name is rejected" || bad "bad --repo" "rc=$rc $out"
+# owner/name and the working directory come from the project folder, not from the caller
+reset; touch "$W/onboard"; echo "In Progress" > "$W/status"
+bsx 7 --read --repo "$W/proj" >/dev/null
+grep -q "^repo view .*@cwd=proj$" "$W/calls.log" && grep -q -- "-f o=me -f r=demo" "$W/calls.log" && grep -q -- "-F n=7 @cwd=proj$" "$W/calls.log"
+chk "--repo <path>: gh asked for owner/name from inside the project, and that name was used" $? "$(cat "$W/calls.log")"
+# searching upward, and where the search stops
+mkdir -p "$W/proj/sub/deeper"
+out="$(bsx 7 --read --repo "$W/proj/sub/deeper")"; rc=$?
+[ $rc -eq 0 ] && [ "$out" = "#7 -> In Progress" ]; chk "--repo <subfolder>: the search goes up to the project's workflow.json" $? "rc=$rc $out"
+out="$(cd "$W/proj/sub/deeper" && env -u CLAUDE_PROJECT_DIR python "$S/board_status.py" 7 --read 2>&1)"; rc=$?
+[ $rc -eq 0 ] && [ "$out" = "#7 -> In Progress" ]; chk "no flag, current directory inside the project: found by searching up" $? "rc=$rc $out"
+mkdir -p "$W/outer/.claude" "$W/outer/inner/x"; cp "$W/proj/.claude/workflow.json" "$W/outer/.claude/"; git -C "$W/outer/inner" init -q
+out="$(bsx 7 --read --repo "$W/outer/inner/x")"; rc=$?
+[ $rc -eq 2 ] && echo "$out" | grep -q "looked in 2 folders, ending at .*inner"; chk "the search stops at the repo root and never uses a config above it" $? "rc=$rc $out"
+# what the not-found message says
+out="$(bsx 7 --read --project-dir "$W/bare")"
+echo "$out" | grep -q "(--project-dir; looked in 1 folder, ending at .*bare)"; chk "message: --project-dir named as the source, 1 folder, ends at the repo root" $? "$out"
+out="$(bsx 7 --read --repo "$W/bare")"
+echo "$out" | grep -q "(--repo; looked in 1 folder"; chk "message: --repo named as the source" $? "$out"
+out="$(cd "$W/elsewhere" && CLAUDE_PROJECT_DIR="$WN/bare" python "$S/board_status.py" 7 --read 2>&1)"
+echo "$out" | grep -q '([$]CLAUDE_PROJECT_DIR; looked in 1 folder'; chk "message: CLAUDE_PROJECT_DIR named as the source" $? "$out"
+mkdir -p "$W/elsewhere/a/b"
+out="$(cd "$W/elsewhere/a/b" && env -u CLAUDE_PROJECT_DIR python "$S/board_status.py" 7 --read 2>&1)"
+echo "$out" | grep -Eq "[(]the current directory; looked in ([3-9]|[1-9][0-9]+) folders"; chk "message: the current directory named, with a folder count of at least 3" $? "$out"
+# precedence
+out="$(cd "$W/elsewhere" && CLAUDE_PROJECT_DIR="$WN/bare" python "$S/board_status.py" 7 --read --project-dir "$W/proj" 2>&1)"; rc=$?
+[ $rc -eq 0 ] && [ "$out" = "#7 -> In Progress" ]; chk "--project-dir beats CLAUDE_PROJECT_DIR" $? "rc=$rc $out"
+# bad values fail before any gh call
+reset
+for bad in "../projx" "C:/no/such/proj" "no-slash"; do
+  out="$(bsx 7 --read --repo "$bad")"; rc=$?
+  [ $rc -eq 2 ] && echo "$out" | grep -q "neither an existing folder"; chk "a mistyped path ($bad) is an error, not owner/name" $? "rc=$rc $out"
+done
+out="$(bsx 7 --read --project-dir "$W/not-there")"; rc=$?
+[ $rc -eq 2 ] && echo "$out" | grep -q "not a folder that exists"; chk "a --project-dir that does not exist is an error, not a search from its parent" $? "rc=$rc $out"
+out="$(bsx 7 --read --repo)"; rc=$?
+[ $rc -eq 2 ] && echo "$out" | grep -q "needs a value" && ! echo "$out" | grep -q Traceback; chk "a flag with no value is a usage error, not a crash" $? "rc=$rc $out"
+[ ! -s "$W/calls.log" ]; chk "none of those made a gh call" $? "$(cat "$W/calls.log")"
+reset; touch "$W/onboard"; bs '#7' --read >/dev/null
+grep -q -- "-F n=7" "$W/calls.log"; chk "a #7 style issue number is passed as 7" $? "$(cat "$W/calls.log")"
+
 reset; touch "$W/onboard"
 out="$(bs 7 --read --repo me/demo)"; rc=$?
 [ $rc -eq 0 ] && grep -q "o=me" "$W/calls.log" && grep -q "r=demo" "$W/calls.log" && ok "--repo owner/name still names the GitHub repo" || bad "--repo owner/name" "rc=$rc $out $(cat "$W/calls.log")"
