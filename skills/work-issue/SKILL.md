@@ -61,8 +61,18 @@ skill's base directory (`scripts/`).
   commit to the base branch; never force-push.
 - Apply the docs rules the issue and CONTRIBUTING state (a DECISIONS entry for a
   judgment call, and so on).
-- Something out of scope turns up: note it and file it as its own issue; fix it
-  inline only if this change introduced it.
+- Something out of scope turns up (a bug, a gap, follow-up work): note it and file it as
+  its own issue; fix it inline only if this change introduced it.
+- **A stray design idea from the user** (a future feature or tweak that is not part of this
+  issue) is not an out-of-scope defect, so do not file an issue for it. Check for
+  `docs/design-ideas.md`:
+  - **It exists:** log the idea there in the user's own words with status `raw`, putting your
+    own analysis under "Context", as its own small docs change (not folded into the current
+    PR). File an issue only when the user says to, or once the idea is `adopted`.
+  - **It does not exist:** say so and offer to add it (`project-bootstrap`'s upgrade mode
+    adds the missing game docs). Do not quietly file an issue instead.
+  This matches the line in the game CLAUDE.md template: stray design thoughts go in
+  `docs/design-ideas.md`, not into the design docs and not straight into the backlog.
 - Read your own diff before moving on.
 
 ## 4. Gate 1: the user tries it before anything is pushed
