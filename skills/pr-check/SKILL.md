@@ -86,13 +86,15 @@ self-exempt a change from that ask because it looks simple.
 If the PR changes anything a doc describes (README status, CONTRIBUTING
 workflow, behavior docs), update it in the same PR. If it made a real judgment
 call and `components.decisions_log` is on, add an entry to `docs/DECISIONS.md`
-in the same PR. Follow any extra doc rules in the project's CONTRIBUTING.md.
+in the same PR. Do not copy counts or lists the code or CI already holds into prose docs:
+they go stale. Follow any extra doc rules in the project's CONTRIBUTING.md.
 
 ### 6. The PR description tells the whole story
 What changed, why (link the issue with `Closes #N`), and *how it was verified*:
 what was run, what the review and the blind check found and how each finding
 was resolved, what was deferred and why. A reader should be able to trust the
-PR was checked, not just be told so.
+PR was checked, not just be told so. Lead with the answer and keep it as short as the
+story allows (see "Writing docs" in CONTRIBUTING): findings that mattered, not a log.
 
 ## Docs-only changes: a lighter description and review, never a lighter process
 

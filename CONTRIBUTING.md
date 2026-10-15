@@ -81,6 +81,20 @@ mechanism - "the report downloads as a CSV" rather than "write exportCsv()".
 Types: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`. Scope is optional
 and usually matches an `area:` label.
 
+## Writing docs
+
+Write for two readers: a person skimming, and an AI session starting cold in this repo (or
+another project reading it). Both need the same things.
+
+- **Put in what is expensive to rediscover:** why a decision was made, constraints that are
+  not obvious from the code, what is and is not trustworthy, and where things live.
+- **Leave out what goes stale or can be read from the source:** test counts, file lists,
+  command output. Link to the code or CI instead.
+- **Lead with the answer.** A README starts with what this is, how to use it and what to rely
+  on; a PR description starts with what changed and why. Detail follows only if a reader needs it.
+- **Say what is not verified,** plainly, in a short list.
+- **Length follows need.** If a section only restates the code or another doc, link to it.
+
 ## Pull requests
 
 - Reference the issue it closes (`Closes #12`) - **required**. If work

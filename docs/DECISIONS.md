@@ -99,3 +99,15 @@ need renegotiating when collaborators join.
 **Why:** The tracking steps are what the no-exceptions rule protects; the savings are in the description and the review. A script keeps "docs-only" from becoming a judgment call that quietly widens.
 
 **Related:** #7
+
+---
+
+## 2026-10-15 - Docs are written for a human skim and a cold-start AI session
+
+**Context:** The docs this workflow produces (READMEs, PR descriptions, DECISIONS entries) had grown long in the wrong places, such as per-suite test counts that went stale within a day, and the owner asked what a reader, human or AI, actually needs.
+
+**Decision:** CONTRIBUTING (this repo's and the bootstrap template's) gets a short "Writing docs" section: put in what is expensive to rediscover (why, non-obvious constraints, what is and is not trustworthy, where things live); leave out what goes stale or can be read from the source (counts, file lists, command output) and link instead; lead with the answer; say what is not verified; length follows need. `pr-check`'s docs step repeats the "no copied counts" rule and bootstrap's README guidance names what a README starts with. Skills and CLAUDE.md files are not covered by this: they load into every session, so they stay short on their own terms.
+
+**Why:** A reader has little time and an AI session has only the files; both are served by the reasons and the honest gaps, and both are hurt by facts that quietly become wrong.
+
+**Related:** #21

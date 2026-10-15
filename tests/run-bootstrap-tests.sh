@@ -204,6 +204,7 @@ NO_EC="$W/noec"; full_game "$NO_EC"; safe_rm "$NO_EC/.editorconfig"
 NO_GA="$W/noga"; full_game "$NO_GA"; safe_rm "$NO_GA/.gitattributes"
 [ "$(missing "$NO_GA")" = ".gitattributes|file" ]; chk "upgrade check: a repo without .gitattributes is offered exactly that" $? "$(missing "$NO_GA")"
 grep -q "^## Line endings" "$TPL/CONTRIBUTING.md.tmpl"; chk "the CONTRIBUTING template has a Line endings section" $? ""
+grep -q "^## Writing docs" "$TPL/CONTRIBUTING.md.tmpl"; chk "the CONTRIBUTING template has a Writing docs section" $? ""
 
 echo; echo "passed: $PASS   failed: $FAIL"
 [ "$FAIL" -eq 0 ]
