@@ -26,11 +26,16 @@ for m in sorted(r["missing"], key=lambda m: (m["path"], m["type"])):
 }
 # put a file in place, creating folders
 put() { mkdir -p "$(dirname "$1")"; printf '%s\n' "${2:-x}" > "$1"; }
+# the Game-specific process section with every subsection of the template
+GSP="## Game-specific process
+### Game docs
+### Play-testing
+### Engine conventions"
 # a repo with every piece the standard process gives a game
 full_game() {
   local d="$1"; mkdir -p "$d"
   put "$d/CONTRIBUTING.md" "# C
-## Game-specific process"
+$GSP"
   put "$d/CLAUDE.md" "- stray ideas go in docs/design-ideas.md"
   for f in DECISIONS VISION DESIGN GAMEPLAY HOW_TO_PLAY design-ideas; do put "$d/docs/$f.md"; done
   put "$d/.github/PULL_REQUEST_TEMPLATE.md"
@@ -170,7 +175,7 @@ NC="$W/nc"; full_game "$NC"; safe_rm "$NC/.github/workflows/ci.yml"; put "$NC/.g
 
 echo "== things that must not trip it"
 CR="$W/crlf"; full_game "$CR"
-printf '# C\r\n## Game-specific process\r\n' > "$CR/CONTRIBUTING.md"
+printf '# C\r\n## Game-specific process\r\n### Game docs\r\n### Play-testing\r\n### Engine conventions\r\n' > "$CR/CONTRIBUTING.md"
 [ -z "$(missing "$CR")" ]; chk "CRLF files are read correctly" $? "$(missing "$CR")"
 BAD="$W/bad"; full_game "$BAD"; printf '{ not json' > "$BAD/.claude/workflow.json"
 python "$CHECK" "$BAD" | grep -q "cannot be read"; chk "a malformed workflow.json is reported, not a crash" $? ""
@@ -205,6 +210,59 @@ NO_GA="$W/noga"; full_game "$NO_GA"; safe_rm "$NO_GA/.gitattributes"
 [ "$(missing "$NO_GA")" = ".gitattributes|file" ]; chk "upgrade check: a repo without .gitattributes is offered exactly that" $? "$(missing "$NO_GA")"
 grep -q "^## Line endings" "$TPL/CONTRIBUTING.md.tmpl"; chk "the CONTRIBUTING template has a Line endings section" $? ""
 grep -q "^## Writing docs" "$TPL/CONTRIBUTING.md.tmpl"; chk "the CONTRIBUTING template has a Writing docs section" $? ""
+
+echo "== subsections of the Game-specific process section (Engine conventions is a placeholder)"
+SS="$W/ss"; full_game "$SS"; put "$SS/CONTRIBUTING.md" "# C
+## Game-specific process
+### Game docs"
+[ "$(missing "$SS" | tr '
+' ' ')" = "CONTRIBUTING.md|subsection CONTRIBUTING.md|subsection " ]; chk "section present: the missing subsections are reported" $? "$(missing "$SS" | tr '
+' ' ')"
+python "$CHECK" "$SS" | grep -q "Play-testing"; chk "...by name" $? ""
+python "$CHECK" "$SS" | grep -q "Engine conventions"; chk "...Engine conventions offered when the repo has no conventions of its own" $? ""
+OWN="$W/own"; full_game "$OWN"; put "$OWN/CONTRIBUTING.md" "# C
+## Game-specific process
+### Game docs
+### Play-testing
+## Godot conventions
+## Cross-platform habits
+## Translatable text"
+[ -z "$(missing "$OWN")" ]; chk "own conventions headings: the Engine conventions subsection is not offered" $? "$(missing "$OWN")"
+python "$CHECK" "$OWN" --json | python -c 'import sys,json;r=json.load(sys.stdin);sys.exit(0 if [s["subsection"] for s in r["skipped"]]==["Engine conventions"] else 1)'
+chk "...and is listed as skipped" $? ""
+python "$CHECK" "$OWN" | grep -q "Not offered"; chk "...and the text report says so" $? ""
+OWN2="$W/own2"; full_game "$OWN2"; put "$OWN2/CONTRIBUTING.md" "# C
+## Cross-platform habits"
+python "$CHECK" "$OWN2" --json | python -c 'import sys,json;r=json.load(sys.stdin);m=[x for x in r["missing"] if x["type"]=="section"];sys.exit(0 if m and m[0].get("omit_subsections")==["Engine conventions"] else 1)'
+chk "no section yet but own conventions: the section is to be appended without Engine conventions" $? ""
+python "$CHECK" "$EMPTY" --json | python -c 'import sys,json;r=json.load(sys.stdin);m=[x for x in r["missing"] if x["type"]=="section"];sys.exit(0 if not m else 1)'
+chk "no CONTRIBUTING.md at all: no section entry (the whole file is the missing piece)" $? ""
+
+echo "== old project hooks"
+python "$CHECK" "$FULL" --json | python -c 'import sys,json;r=json.load(sys.stdin)["old_hooks"];sys.exit(0 if not (r["settings"] or r["files"] or r["doc_references"]) else 1)'
+chk "a repo without old hooks reports none" $? ""
+OH="$W/oh"; full_game "$OH"
+put "$OH/tools/hooks/block-merge-if-ci-red.sh" "#!/bin/bash"; put "$OH/tools/hooks/guard-repo-cwd.sh" "#!/bin/bash"; put "$OH/tools/hooks/other-tool.sh" "#!/bin/bash"
+put "$OH/.claude/settings.json" '{"hooks":{"PreToolUse":[{"matcher":"Bash","hooks":[{"type":"command","command":"bash tools/hooks/block-merge-if-ci-red.sh"},{"type":"command","command":"bash tools/hooks/lint.sh"},{"type":"command","command":"bash \"${CLAUDE_PLUGIN_ROOT}/hooks/guard-repo-cwd.sh\""}]}]}}'
+put "$OH/CONTRIBUTING.md" "# C
+$GSP
+The merge gate is tools/hooks/block-merge-if-ci-red.sh.
+nothing here"
+python "$CHECK" "$OH" --json | python -c '
+import sys,json
+r=json.load(sys.stdin)["old_hooks"]
+assert [s["hook"] for s in r["settings"]]==["merge-gate"], r["settings"]
+assert sorted(f["path"] for f in r["files"])==["tools/hooks/block-merge-if-ci-red.sh","tools/hooks/guard-repo-cwd.sh"], r["files"]
+assert [(d["file"],d["line"]) for d in r["doc_references"]]==[("CONTRIBUTING.md",6)], r["doc_references"]'
+chk "old copies are found by name in settings.json and tools/hooks, the plugin's own entry and other hooks are not, doc lines are listed" $? ""
+python "$CHECK" "$OH" | grep -q "Old project hooks"; chk "the text report has an old-hooks section" $? ""
+[ -z "$(missing "$OH")" ]; chk "old hooks are reported apart from what is missing" $? "$(missing "$OH")"
+before="$(snapshot "$OH")"; python "$CHECK" "$OH" >/dev/null
+[ "$before" = "$(snapshot "$OH")" ]; chk "...and detecting them modifies nothing" $? ""
+
+echo "== kind wording"
+python "$CHECK" "$EMPTY" | grep -q "no usable .claude/workflow.json was found, so game was assumed"; chk "no workflow.json: says plainly that game was assumed" $? "$(python "$CHECK" "$EMPTY" | head -2)"
+python "$CHECK" "$EMPTY" | grep -q "from assumed"; [ $? -ne 0 ]; chk "...and not the old 'from assumed (bootstrap default)'" $? ""
 
 echo; echo "passed: $PASS   failed: $FAIL"
 [ "$FAIL" -eq 0 ]
