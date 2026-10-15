@@ -119,8 +119,9 @@ from another project; they're per-board. Validate the file is still JSON afterwa
 
 Start from `<skill>/references/profile.example.json` (the profile's defaults) and
 resolve it into the project's `.claude/workflow.json`:
-- **Keep** `version`, `kind`, `stack`, `git`, `review`, `ci`, `components`, `labels.types`
-  and `board.priorities`/`columns` (replaced by the real board block below).
+- **Keep** `version`, `kind`, `stack`, `git`, `review`, `ci`, `components` and `labels.types`.
+  `board` is not copied from the example: it is replaced wholesale by the real board
+  block below (which has no `title` or `priorities`; the board's own Priority field holds those).
 - **Drop** `identity` (a personal default, never copied into a repo) and
   `labels.area_presets` (only the preset matching the kind is proposed, then edited).
 - **Add** `project` (the project's name) and `labels.areas` (the confirmed `area:` list, e.g.

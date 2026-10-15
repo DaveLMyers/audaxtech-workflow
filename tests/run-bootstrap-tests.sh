@@ -264,5 +264,31 @@ echo "== kind wording"
 python "$CHECK" "$EMPTY" | grep -q "no usable .claude/workflow.json was found, so game was assumed"; chk "no workflow.json: says plainly that game was assumed" $? "$(python "$CHECK" "$EMPTY" | head -2)"
 python "$CHECK" "$EMPTY" | grep -q "from assumed"; [ $? -ne 0 ]; chk "...and not the old 'from assumed (bootstrap default)'" $? ""
 
+echo "== review follow-ups"
+CV="$W/cv"; full_game "$CV"; put "$CV/CONTRIBUTING.md" "# C
+## Game-specific process
+### Game docs
+### Play-testing
+## Commit conventions"
+[ "$(missing "$CV")" = "CONTRIBUTING.md|subsection" ]; chk "a 'Commit conventions' heading does not excuse Engine conventions" $? "$(missing "$CV")"
+AL="$W/al"; full_game "$AL"; put "$AL/CONTRIBUTING.md" "# C
+## Game-specific process
+### Game documents
+### Playtesting
+### Engine conventions"
+[ -z "$(missing "$AL")" ]; chk "'Game documents' and 'Playtesting' count as the template's subsections" $? "$(missing "$AL")"
+BS="$W/bs"; full_game "$BS"; put "$BS/tools/hooks/block-merge-if-ci-red.sh"; put "$BS/tools/hooks/lint.sh"
+put "$BS/.claude/settings.json" '{ // comment
+"hooks": {} }'
+put "$BS/CONTRIBUTING.md" "# C
+$GSP
+Run tools/hooks/lint.sh before pushing."
+python "$CHECK" "$BS" --json | python -c '
+import sys,json
+r=json.load(sys.stdin)["old_hooks"]
+assert r["doc_references"]==[], r["doc_references"]
+assert r["notes"] and "could not be parsed" in r["notes"][0], r["notes"]'
+chk "unrelated tools/hooks scripts are not doc hits, and an unparseable settings.json is noted" $? ""
+
 echo; echo "passed: $PASS   failed: $FAIL"
 [ "$FAIL" -eq 0 ]

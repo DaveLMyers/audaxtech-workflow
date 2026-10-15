@@ -45,7 +45,17 @@ TEMPLATE_EXTRA = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.par
 SUBSECTION_RE = re.compile(r"^###[ \t]+(.+?)[ \t]*$", re.MULTILINE)
 HEADING_RE = re.compile(r"^#{1,6}[ \t]+(.+?)[ \t]*$", re.MULTILINE)
 ENGINE_HEADING = "engine conventions"
-OWN_CONVENTIONS_RE = re.compile(r"convention|cross-platform|translatable", re.IGNORECASE)
+# Headings that mean the repo has its own engine/code conventions. A bare "Commit conventions"
+# or "Branch naming conventions" does not count: those say nothing about the engine.
+OWN_CONVENTIONS_RE = re.compile(
+    r"cross-platform|translatable"
+    r"|\b(?:engine|godot|unity|unreal|gdscript|coding|code|style|language)\b[^\n]*\bconventions?\b"
+    r"|\bconventions?\b[^\n]*\b(?:engine|godot|unity|unreal|gdscript)\b", re.IGNORECASE)
+# Other spellings of the template's subsection headings, compared with punctuation removed.
+SUBSECTION_ALIASES = {
+    "gamedocs": {"gamedocuments", "gamedocumentation", "gamedesigndocs"},
+    "playtesting": {"playtest", "playtests", "playtestingthegame"},
+}
 # Older project-level copies of the plugin's two hooks, matched by name.
 OLD_HOOKS = {
     "merge-gate": re.compile(r"block[-_]merge|merge[-_]gate|ci[-_]red", re.IGNORECASE),
@@ -85,6 +95,17 @@ def template_subsections():
     return SUBSECTION_RE.findall(text) if text else []
 
 
+def squash(heading):
+    return re.sub(r"[^a-z0-9]", "", heading.lower())
+
+
+def has_heading(sub, headings):
+    """True if the repo has the template subsection `sub` under its own name or a known alias."""
+    key = squash(sub)
+    wanted = {key} | SUBSECTION_ALIASES.get(key, set())
+    return any(squash(h) in wanted for h in headings)
+
+
 def hook_kind(text):
     for kind, rx in OLD_HOOKS.items():
         if rx.search(text):
@@ -94,7 +115,7 @@ def hook_kind(text):
 
 def find_old_hooks(repo):
     """Project-level copies of the plugin's hooks, and the doc lines that mention them."""
-    settings, files, names = [], [], set()
+    settings, files, names, notes = [], [], set(), []
     for fname in ("settings.json", "settings.local.json"):
         text = read(os.path.join(repo, ".claude", fname))
         if text is None:
@@ -102,6 +123,7 @@ def find_old_hooks(repo):
         try:
             hooks = json.loads(text).get("hooks", {})
         except (ValueError, AttributeError):
+            notes.append(".claude/%s could not be parsed as JSON, so its hooks were not checked: read it yourself" % fname)
             continue
         if not isinstance(hooks, dict):
             continue
@@ -115,7 +137,7 @@ def find_old_hooks(repo):
                     if kind:
                         settings.append({"file": ".claude/" + fname, "event": event,
                                          "matcher": group.get("matcher"), "hook": kind, "command": cmd})
-                        names.update(SCRIPT_RE.findall(cmd))
+                        names.update(n for n in SCRIPT_RE.findall(cmd) if hook_kind(n))
     hook_dir = os.path.join(repo, *HOOK_DIR.split("/"))
     if os.path.isdir(hook_dir):
         for n in sorted(os.listdir(hook_dir)):
@@ -130,13 +152,13 @@ def find_old_hooks(repo):
             dirs.sort()
             docs += [os.path.relpath(os.path.join(root, f), repo).replace(os.sep, "/")
                      for f in sorted(fs) if f.lower().endswith(".md")]
-        needles = [HOOK_DIR] + sorted(names)
+        needles = sorted(names | {HOOK_DIR + "/" + n for n in names})
         for rel in docs:
             text = read(os.path.join(repo, *rel.split("/")))
             for i, line in enumerate((text or "").splitlines(), 1):
                 if any(n in line for n in needles):
                     refs.append({"file": rel, "line": i, "text": line.strip()[:160]})
-    return {"settings": settings, "files": files, "doc_references": refs}
+    return {"settings": settings, "files": files, "doc_references": refs, "notes": notes}
 
 
 def check(repo, kind_arg):
@@ -182,7 +204,7 @@ def check(repo, kind_arg):
             want("docs/" + d, "game doc", "kinds/game/" + d)
         contributing = read(os.path.join(repo, "CONTRIBUTING.md"))
         if contributing is not None:
-            headings = [h.lower() for h in HEADING_RE.findall(contributing)]
+            headings = HEADING_RE.findall(contributing)
             own_conventions = any(OWN_CONVENTIONS_RE.search(h) for h in headings)
             if not GAME_SECTION_RE.search(contributing):
                 entry = {
@@ -195,8 +217,11 @@ def check(repo, kind_arg):
                     entry["what"] += " (append without its Engine conventions subsection: the repo has its own conventions)"
                 missing.append(entry)
             else:
-                for sub in template_subsections():
-                    if sub.lower() in headings:
+                subs = template_subsections()
+                if not subs:
+                    note = (note + "; " if note else "") + "game template contributing-extra.md not found, subsections were not checked"
+                for sub in subs:
+                    if has_heading(sub, headings):
                         continue
                     if sub.lower() == ENGINE_HEADING and own_conventions:
                         skipped.append({
@@ -247,6 +272,8 @@ def render(report):
     for sk in report["skipped"]:
         out.append("Not offered: the '%s' subsection of %s (%s)." % (sk["subsection"], sk["path"], sk["why"]))
     oh = report["old_hooks"]
+    for n in oh["notes"]:
+        out.append("Note: " + n)
     if oh["settings"] or oh["files"]:
         out.append("Old project hooks (they would run twice next to the plugin's; offer to remove):")
         for h in oh["settings"]:
