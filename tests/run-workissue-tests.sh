@@ -31,6 +31,51 @@ eq "slug is capped at 5 words" "$L" "feature/one-two-three-four-five"
 LONG="$(bn --title 'feat: extraordinarily-long-hyphenated-compound words everywhere' --labels 'type:feature' --number 2)"
 [ "${#LONG}" -le 50 ] && ok "slug length is capped (${#LONG} chars)" || bad "slug length capped" "$LONG"
 
+echo "== docs-only classification (pr-check's docs_only.py, issue #7)"
+DO="$HERE/../skills/pr-check/scripts/docs_only.py"
+dox() { python "$DO" "$@" 2>&1; }
+is_docs()  { out="$(dox "$@")"; rc=$?; [ $rc -eq 0 ] && [ "$out" = "docs-only" ] && ok "docs-only: $*" || bad "docs-only: $*" "rc=$rc $out"; }
+not_docs() { out="$(dox "$@")"; rc=$?; [ $rc -eq 1 ] && echo "$out" | grep -q "^not docs-only" && ok "NOT docs-only: $*" || bad "NOT docs-only: $*" "rc=$rc $out"; }
+is_docs docs/DECISIONS.md
+is_docs README.md docs/design.md docs/img/shot.png
+is_docs CONTRIBUTING.md CHANGELOG.md LICENSE
+is_docs ./docs/notes.txt
+is_docs docs/GUIDE.MD
+not_docs skills/work-issue/SKILL.md
+not_docs docs/guide.md skills/pr-check/SKILL.md
+not_docs CLAUDE.md
+not_docs docs/CLAUDE.md
+not_docs agents/test-saboteur.md
+not_docs skills/project-bootstrap/templates/CONTRIBUTING.md.tmpl
+not_docs docs/templates/page.md
+not_docs .github/PULL_REQUEST_TEMPLATE.md
+not_docs .claude/workflow.json
+not_docs tests/README.md
+not_docs hooks/README.md
+not_docs src/main.py
+not_docs docs/run.sh
+not_docs README.md.bak
+not_docs docs/../skills/a/SKILL.md
+not_docs ../outside/README.md
+not_docs /etc/README.md
+out="$(dox docs/a.md src/b.py skills/c/SKILL.md)"; echo "$out" | grep -q "src/b.py" && echo "$out" | grep -q "skills/c/SKILL.md" && ! echo "$out" | grep -q "docs/a.md"
+chk "the not-docs-only answer names exactly the offending files" $? "$out"
+out="$(dox)"; rc=$?; [ $rc -eq 2 ]; chk "no arguments is a usage error (exit 2)" $? "rc=$rc"
+out="$(dox --base)"; rc=$?; [ $rc -eq 2 ]; chk "--base without a branch is a usage error (exit 2)" $? "rc=$rc"
+DG="$W/dg"; mkdir -p "$DG/docs" "$DG/skills/x"; git -C "$DG" init -q -b main; git -C "$DG" config user.email t@t; git -C "$DG" config user.name t
+echo a > "$DG/README.md"; git -C "$DG" add README.md; git -C "$DG" commit -q -m base
+git -C "$DG" checkout -q -b docs-branch; echo b > "$DG/docs/new.md"; git -C "$DG" add docs/new.md; git -C "$DG" commit -q -m docs
+out="$(cd "$DG" && python "$DO" --base main 2>&1)"; rc=$?
+[ $rc -eq 0 ] && [ "$out" = "docs-only" ]; chk "--base reads the branch's changed files from git: a docs branch is docs-only" $? "rc=$rc $out"
+echo c > "$DG/skills/x/SKILL.md"; git -C "$DG" add skills/x/SKILL.md; git -C "$DG" commit -q -m skill
+out="$(cd "$DG" && python "$DO" --base main 2>&1)"; rc=$?
+[ $rc -eq 1 ] && echo "$out" | grep -q "skills/x/SKILL.md"; chk "...and adding a SKILL.md makes it not docs-only, naming the file" $? "rc=$rc $out"
+git -C "$DG" checkout -q main
+out="$(cd "$DG" && python "$DO" --base main 2>&1)"; rc=$?
+[ $rc -eq 1 ] && echo "$out" | grep -q "no changed files"; chk "a branch with no changes is not docs-only" $? "rc=$rc $out"
+out="$(cd "$DG" && python "$DO" --base no-such-branch 2>&1)"; rc=$?
+[ $rc -eq 2 ]; chk "an unknown base branch is an error (exit 2), not 'docs-only'" $? "rc=$rc $out"
+
 echo "== board status (fake gh)"
 PID="PVT_proj"; OTHER="PVT_other"; FIELD="PVTSSF_status"
 mkdir -p "$W/proj/.claude" "$W/bin"; git -C "$W/proj" init -q

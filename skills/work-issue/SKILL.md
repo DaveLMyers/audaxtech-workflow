@@ -116,6 +116,10 @@ per launch:
   route around it (another tool, a script, a different shell), and do not change
   permission settings yourself. The user's yes at Gate 1 is not seen by the permission
   layer, so a push can still be refused after it.
+- **Docs-only change?** Run pr-check's `scripts/docs_only.py --base <base branch>`. If it says
+  "docs-only", the PR body is one paragraph (what, why with `Closes #N`, that it is docs-only,
+  what you read through) and pr-check uses its lighter version; every other step here still
+  applies. If it says not docs-only, or you are unsure, use the full body below.
 - Push with `-u`. Write the **PR body to a file** (never inline in a shell command:
   backticks and quotes get eaten, and the merge-gate hook reads command text). Use the
   repo's PR template: what changed, why (`Closes #N`), how it was verified (be
@@ -138,7 +142,7 @@ per launch:
   `python scripts/board_status.py N --read --repo <path to the project>`; if it did not move, set `in_review`.
 
 ## 6. pr-check
-Run the `pr-check` skill on the PR. Fix what it finds in this PR; defer only with a
+Run the `pr-check` skill on the PR (its lighter docs-only version when `docs_only.py` says so). Fix what it finds in this PR; defer only with a
 reason and, where it needs a decision, an issue. Update the PR body with the results
 (again from a file), then **re-read the live body** to be sure nothing was garbled.
 

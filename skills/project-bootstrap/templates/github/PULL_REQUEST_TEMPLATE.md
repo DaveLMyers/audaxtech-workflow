@@ -1,3 +1,6 @@
+<!-- Docs-only change (the pr-check skill says so)? One paragraph is enough: what, why with
+     Closes #N, that it is docs-only, and what you read through. Delete the sections below. -->
+
 ## What
 
 <!-- What changed, in plain terms. -->
