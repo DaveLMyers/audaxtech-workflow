@@ -36,6 +36,7 @@ full_game() {
   put "$d/.github/PULL_REQUEST_TEMPLATE.md"
   for f in feature bug_report chore research; do put "$d/.github/ISSUE_TEMPLATE/$f.yml"; done
   put "$d/.github/workflows/ci.yml"
+  put "$d/.gitattributes"; put "$d/.editorconfig"
   put "$d/.claude/workflow.json" '{"version":1,"kind":"game"}'
 }
 # a hash of every file name and content under a folder (portable: no sha1sum or sort -z)
@@ -101,6 +102,8 @@ safe_rm -r "$G/docs" "$G/.github"; put "$G/CONTRIBUTING.md" "# C"; put "$G/CLAUD
 
 echo "== exact lists (what a wrong required-file list or kind order would change)"
 ALL_FILES=".claude/workflow.json
+.editorconfig
+.gitattributes
 .github/ISSUE_TEMPLATE/bug_report.yml
 .github/ISSUE_TEMPLATE/chore.yml
 .github/ISSUE_TEMPLATE/feature.yml
@@ -119,10 +122,10 @@ files_only() { missing "$@" | sed 's/|file$//' | sort; }
 sorted() { printf '%s
 ' "$1" | sort; }
 [ "$(files_only "$EMPTY")" = "$(sorted "$ALL_FILES
-$GAME_FILES")" ]; chk "an empty game repo is missing exactly the 15 files, with no section or line" $? "$(missing "$EMPTY")"
+$GAME_FILES")" ]; chk "an empty game repo is missing exactly the 17 files, with no section or line" $? "$(missing "$EMPTY")"
 [ -z "$(missing "$EMPTY" | grep -v '|file$')" ]; chk "...and nothing of type section or line while their files are absent" $? ""
 for k in web library other tool; do
-  [ "$(files_only "$EMPTY" --kind $k)" = "$(sorted "$ALL_FILES")" ]; chk "kind $k: exactly the 10 standard files, no game docs" $? "$(missing "$EMPTY" --kind $k | tr '
+  [ "$(files_only "$EMPTY" --kind $k)" = "$(sorted "$ALL_FILES")" ]; chk "kind $k: exactly the 12 standard files, no game docs" $? "$(missing "$EMPTY" --kind $k | tr '
 ' ' ')"
 done
 M="$W/m"; full_game "$M"; safe_rm "$M/docs/VISION.md"
@@ -176,6 +179,31 @@ chk "...and the broken marker is not double-reported as missing" $? ""
 python "$CHECK" "$W/does-not-exist" >/dev/null 2>&1; [ $? -eq 2 ]; chk "a missing directory is a usage error (exit 2)" $? ""
 IDEAS="$W/ideas"; full_game "$IDEAS"; put "$IDEAS/CLAUDE.md" "- stray ideas go in docs/design-ideas.md, in the owner's words"
 [ -z "$(missing "$IDEAS")" ]; chk "the CLAUDE.md pointer is recognised wherever the line sits" $? "$(missing "$IDEAS")"
+
+echo "== the line-ending templates (issue #6)"
+TPL="$HERE/../skills/project-bootstrap/templates"
+GA="$W/ga"; mkdir -p "$GA"; git -C "$GA" init -q; cp "$TPL/gitattributes.txt" "$GA/.gitattributes"
+attr() { git -C "$GA" check-attr "$1" -- "$2" | sed 's/.*: //' | tr -d '\r'; }
+[ "$(attr eol run.sh)" = "lf" ] && [ "$(attr eol notes.md)" = "lf" ] && [ "$(attr eol src/main.py)" = "lf" ]; chk ".gitattributes: scripts and text files are LF" $? "$(attr eol run.sh) $(attr eol notes.md)"
+[ "$(attr eol setup.ps1)" = "crlf" ] && [ "$(attr eol go.bat)" = "crlf" ] && [ "$(attr eol go.cmd)" = "crlf" ]; chk ".gitattributes: Windows-only scripts are CRLF" $? "$(attr eol setup.ps1)"
+[ "$(attr text pic.png)" = "unset" ] && [ "$(attr text sound.ogg)" = "unset" ]; chk ".gitattributes: binaries are never converted" $? "$(attr text pic.png)"
+EC="$TPL/editorconfig.txt"
+python - "$EC" <<'EOF2'
+import sys, re
+t = open(sys.argv[1], encoding="utf-8").read()
+lines = [l.strip() for l in t.splitlines() if l.strip() and not l.strip().startswith("#")]
+assert lines[0] == "root = true", lines[0]
+star = lines[lines.index("[*]") + 1 : lines.index("[*.md]")]
+assert "end_of_line = lf" in star and "charset = utf-8" in star and "insert_final_newline = true" in star, star
+assert not any(l.startswith("indent_") for l in lines), "indentation must not be set here"
+assert "[*.{ps1,bat,cmd}]" in lines and lines[lines.index("[*.{ps1,bat,cmd}]") + 1] == "end_of_line = crlf"
+EOF2
+chk ".editorconfig: root, utf-8, LF, final newline, CRLF only for Windows scripts, no indentation rules" $? ""
+NO_EC="$W/noec"; full_game "$NO_EC"; safe_rm "$NO_EC/.editorconfig"
+[ "$(missing "$NO_EC")" = ".editorconfig|file" ]; chk "upgrade check: a repo without .editorconfig is offered exactly that" $? "$(missing "$NO_EC")"
+NO_GA="$W/noga"; full_game "$NO_GA"; safe_rm "$NO_GA/.gitattributes"
+[ "$(missing "$NO_GA")" = ".gitattributes|file" ]; chk "upgrade check: a repo without .gitattributes is offered exactly that" $? "$(missing "$NO_GA")"
+grep -q "^## Line endings" "$TPL/CONTRIBUTING.md.tmpl"; chk "the CONTRIBUTING template has a Line endings section" $? ""
 
 echo; echo "passed: $PASS   failed: $FAIL"
 [ "$FAIL" -eq 0 ]

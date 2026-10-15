@@ -1,0 +1,18 @@
+# EditorConfig: the same basics in every editor. Indentation is deliberately not set
+# here, because it depends on the language and engine (GDScript uses tabs, for example);
+# add per-language [*.ext] sections for it.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Markdown uses trailing double spaces for line breaks.
+[*.md]
+trim_trailing_whitespace = false
+
+# Windows-only scripts want CRLF (matches .gitattributes).
+[*.{ps1,bat,cmd}]
+end_of_line = crlf

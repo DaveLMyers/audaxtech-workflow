@@ -86,6 +86,8 @@ def check(repo, kind_arg):
         (present if has_ci else missing).append(
             {"path": ".github/workflows/ci.yml", "what": "CI workflow (no workflow file found)", "template": "github/workflows/ci.yml.tmpl", "type": "file"}
         )
+    want(".gitattributes", "line-ending rules", "gitattributes.txt")
+    want(".editorconfig", "editor basics (charset, line endings)", "editorconfig.txt")
     want(".claude/workflow.json", "the marker that switches the plugin's hooks on", "(generated)")
 
     # Game-only pieces.

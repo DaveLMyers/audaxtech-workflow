@@ -75,3 +75,15 @@ need renegotiating when collaborators join.
 **Why:** Overloading `--repo` matches how the issue asked for it and keeps the old `owner/name` form working; a folder is unambiguous because a real folder wins. Anything that is neither a folder nor a strict `owner/name` (an owner starts with a letter or digit, then exactly one `/`) is rejected, so a mistyped path such as `../projx` fails clearly instead of becoming a GitHub 404. An explicit folder that does not exist is an error rather than a search from its nearest existing parent.
 
 **Related:** #5
+
+---
+
+## 2026-10-15 - New projects keep LF in the repo and in the working tree
+
+**Context:** Issue #6: a Windows-first project (critter-wars) had a CRLF `docs/DECISIONS.md`, so appending an entry needed hand-built CRLF text, every new file produced "LF will be replaced by CRLF" warnings, and different tools handled the endings differently, risking mixed endings in one file.
+
+**Decision:** `project-bootstrap` writes `.gitattributes` with `* text=auto eol=lf` (LF in the repo and in the working tree on every OS), CRLF only for `*.ps1`, `*.bat` and `*.cmd`, and binaries untouched; and an `.editorconfig` with charset, LF, final newline and trimmed whitespace but no indentation rules (those depend on the language, e.g. GDScript uses tabs). The CONTRIBUTING template gets a short Line endings section. Existing repos are offered the files through upgrade mode and never overwritten. A repo whose files are already CRLF keeps CRLF for appends until a separate `git add --renormalize .` commit converts them.
+
+**Why:** One ending everywhere means an editor, a shell append and a tool all produce the same bytes, which is the whole fix; LF is also the only ending bash scripts tolerate. The cost is that Windows-only tools which insist on CRLF need an explicit rule, which the CRLF entries cover. This is the same rule this repo already uses.
+
+**Related:** #6
