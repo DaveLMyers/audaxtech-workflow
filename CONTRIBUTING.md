@@ -102,7 +102,7 @@ and usually matches an `area:` label.
   values, comments.
 - Before calling any PR ready to merge, run the `pr-check` skill (from the
   audaxtech-workflow plugin; it reads `.claude/workflow.json` and this file).
-- CI (`.github/workflows/ci.yml`) runs the three suites in `tests/` on Linux,
+- CI (`.github/workflows/ci.yml`) runs the five suites in `tests/` on Linux,
   macOS and Windows for every PR and push to `main`. It is not yet configured
   as a *required* check in GitHub, so a red run is a hard "don't merge" on the
   honor system; this repo uses its own plugin's merge-gate hook (active
@@ -118,11 +118,13 @@ and usually matches an `area:` label.
 bash tests/run-hook-tests.sh        # the merge gate and cwd guard (fake gh, throwaway repos)
 bash tests/run-toolchain-tests.sh   # the toolchain-run generator (fake tool served from localhost)
 bash tests/run-workissue-tests.sh   # work-issue's helper scripts (fake gh)
+bash tests/run-bootstrap-tests.sh   # project-bootstrap's upgrade check (throwaway repos)
+bash tests/run-saferm-tests.sh      # the delete guard the suites use
 claude plugin validate .            # manifest and layout
 ```
 
 The suites are self-contained and clean up after themselves; CI runs the
-three scripts on every OS. A change to a hook, a generator or a helper script
+five scripts on every OS. A change to a hook, a generator or a helper script
 needs a case in the matching suite in the same PR. Skills, agents and
 templates are prose: they are verified by actually using them (bootstrap a
 scratch repo, run `work-issue` on a scratch issue), and the PR says what was
@@ -142,7 +144,7 @@ tried.
 
 ## Definition of done
 
-Merged to `main`; the three test suites pass and `claude plugin validate .` is clean; tests pass and cover what the
+Merged to `main`; the five test suites pass and `claude plugin validate .` is clean; tests pass and cover what the
 change added; an independent review was run and its findings addressed or
 explicitly deferred; the linked issue's acceptance criteria are met. "Done"
 does not require polish beyond what the issue asked for - track follow-up
@@ -160,6 +162,10 @@ polish as its own issue.
 - **Line endings.** Scripts must stay LF (`.gitattributes` enforces it; CRLF
   after a shebang breaks bash). Only `*.ps1` is CRLF. Append to existing docs
   with the Edit tool rather than shell redirects so endings never mix.
+- **Test suites delete only through `safe_rm`.** `tests/_safe_rm.sh` refuses any
+  delete outside the throwaway folders a suite registered with `safe_rm_allow`. Never
+  call `rm` directly in a suite: an earlier helper deleted real files from the working
+  tree that way.
 - **Skills and docs describe each other.** The README table, a skill's
   SKILL.md and the templates it renders must agree. A change to one updates
   the others in the same PR, and a leftover template placeholder in rendered

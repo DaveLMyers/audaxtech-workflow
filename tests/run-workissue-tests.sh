@@ -6,8 +6,9 @@
 set -u
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$HERE/_safe_rm.sh"
 S="$HERE/../skills/work-issue/scripts"
-W="$(mktemp -d)"; trap 'rm -rf "$W"' EXIT
+W="$(mktemp -d)"; safe_rm_allow "$W"; trap 'safe_rm -r "$W"' EXIT
 PASS=0; FAIL=0
 ok()  { PASS=$((PASS+1)); echo "ok    $1"; }
 bad() { FAIL=$((FAIL+1)); echo "FAIL  $1  (${2:0:240})"; }
@@ -72,7 +73,7 @@ sys.stderr.write("fake gh: unhandled: " + joined + "\n"); sys.exit(1)
 EOF
 WN="$(cygpath -m "$W" 2>/dev/null || echo "$W")"        # native-style path for the python-based fake
 export AUDAX_GH="python $WN/fake_gh.py" FAKE_STATE="$WN"
-reset() { rm -f "$W/onboard" "$W/calls.log"; echo "Backlog" > "$W/status"; touch "$W/calls.log"; unset FAKE_NO_ISSUE FAKE_OTHER_PROJECT FAKE_ADD_OUT FAKE_EDIT_NOOP; }
+reset() { safe_rm "$W/onboard" "$W/calls.log"; echo "Backlog" > "$W/status"; touch "$W/calls.log"; unset FAKE_NO_ISSUE FAKE_OTHER_PROJECT FAKE_ADD_OUT FAKE_EDIT_NOOP; }
 bs() { python "$S/board_status.py" "$@" --project-dir "$W/proj" 2>&1; }
 
 reset; touch "$W/onboard"

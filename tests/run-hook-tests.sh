@@ -12,10 +12,11 @@
 set -u
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$HERE/_safe_rm.sh"
 H="$HERE/../hooks"
-T="$(mktemp -d)"      # the "project" (has/lacks .claude/workflow.json per test)
-O="$(mktemp -d)"      # an unrelated repo
-FAKEBIN="$(mktemp -d)"
+T="$(mktemp -d)"; safe_rm_allow "$T"      # the "project" (has/lacks .claude/workflow.json per test)
+O="$(mktemp -d)"; safe_rm_allow "$O"      # an unrelated repo
+FAKEBIN="$(mktemp -d)"; safe_rm_allow "$FAKEBIN"
 git -C "$T" init -q; git -C "$O" init -q; mkdir -p "$T/.claude"
 MERGE="gh pr"" merge 42"
 
@@ -65,7 +66,7 @@ expect_warn() { # label
 }
 
 echo "== opt-in gating: no workflow.json means inert"
-rm -f "$T/.claude/workflow.json"
+safe_rm "$T/.claude/workflow.json"
 run_hook guard-repo-cwd.sh "$T" "$O" "git commit -m x";        expect_allow "cwd guard inert without marker"
 FAKE_GH_CHECKS='[{"name":"ci","bucket":"fail"}]' run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE"
                                                                expect_allow "merge gate inert without marker (even with red CI)"
@@ -126,7 +127,7 @@ done
 unset $NOTO
 
 # Which binary gets used: stubs that record their use, then run the command.
-STUBS="$(mktemp -d)"
+STUBS="$(mktemp -d)"; safe_rm_allow "$STUBS"
 for b in timeout gtimeout; do
   printf '#!/usr/bin/env bash
 echo used >> "%s/%s.used"
@@ -135,15 +136,15 @@ exec "$@"
 ' "$STUBS" "$b" > "$STUBS/$b"; chmod +x "$STUBS/$b"
 done
 GREEN='[{"name":"test","bucket":"pass"}]'
-rm -f "$STUBS"/*.used
+safe_rm "$STUBS"/*.used
 PATH="$STUBS:$PATH" FAKE_GH_CHECKS="$GREEN" run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE"
 [ -f "$STUBS/timeout.used" ] && [ ! -f "$STUBS/gtimeout.used" ]; chk_path() { if [ "$1" -eq 0 ]; then PASS=$((PASS+1)); echo "ok    $2"; else FAIL=$((FAIL+1)); echo "FAIL  $2"; fi; }
 chk_path $? "timeout binary is preferred when present"
-rm -f "$STUBS"/*.used
+safe_rm "$STUBS"/*.used
 PATH="$STUBS:$PATH" WORKFLOW_HOOKS_NO_TIMEOUT_BIN=1 FAKE_GH_CHECKS="$GREEN" run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE"
 [ ! -f "$STUBS/timeout.used" ] && [ ! -f "$STUBS/gtimeout.used" ]
 chk_path $? "the env flag overrides both timeout and gtimeout"
-rm -rf "$STUBS"
+safe_rm -r "$STUBS"
 marker '{"version":1,"components":{"merge_gate_hook":false}}'
 FAKE_GH_CHECKS='[{"name":"test","bucket":"fail"}]' \
   run_hook block-merge-if-ci-red.sh "$T" "$T" "$MERGE";        expect_allow "merge gate switched off per project"
@@ -183,7 +184,7 @@ echo "== marker lookup: subfolders count, directories above the repo do not"
 marker '{"version":1,"components":{}}'
 mkdir -p "$T/sub/deeper"
 run_hook guard-repo-cwd.sh "$T/sub/deeper" "$O" "git commit -m x";   expect_deny  "session started in a subfolder of an opted-in repo is still protected" "Blocked"
-OUTER="$(mktemp -d)"; mkdir -p "$OUTER/.claude" "$OUTER/inner"; echo '{"version":1,"components":{}}' > "$OUTER/.claude/workflow.json"; git -C "$OUTER/inner" init -q
+OUTER="$(mktemp -d)"; safe_rm_allow "$OUTER"; mkdir -p "$OUTER/.claude" "$OUTER/inner"; echo '{"version":1,"components":{}}' > "$OUTER/.claude/workflow.json"; git -C "$OUTER/inner" init -q
 run_hook guard-repo-cwd.sh "$OUTER/inner" "$O" "git commit -m x";    expect_allow "a marker in a directory ABOVE the repo root is ignored"
 
 echo "== a malformed marker is loud, and does not block"
@@ -194,6 +195,6 @@ run_hook guard-repo-cwd.sh "$T" "$O" "ls";                           expect_warn
 marker '{"version":1,"components":{}}'
 run_hook guard-repo-cwd.sh "$T" "$O" "git commit -m x";              expect_deny  "fixing the file restores protection" "Blocked"
 
-rm -rf "$T" "$O" "$FAKEBIN" "$OUTER"
+safe_rm -r "$T" "$O" "$FAKEBIN" "$OUTER"
 echo; echo "passed: $PASS   failed: $FAIL"
 [ "$FAIL" -eq 0 ]
