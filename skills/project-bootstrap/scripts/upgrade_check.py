@@ -17,6 +17,16 @@ The CLAUDE.md pointer is recognised by the file name appearing anywhere in CLAUD
 Files are checked for presence only, not content: a .gitattributes that exists but has no
 eol rule is reported as present, so the skill should still read it before saying all is well.
 
+Game-specific process: when CONTRIBUTING.md already has that section, each "###" subsection
+of kinds/game/contributing-extra.md is checked by heading and the missing ones are listed. The
+"Engine conventions" subsection is only a {{ENGINE_CONVENTIONS}} placeholder, so it is never offered
+to a repo that has its own conventions / cross-platform / translatable-text heading; it is listed
+under `skipped` instead (and flagged `omit_subsections` when the whole section is to be appended).
+
+Old project hooks: copies of the merge-gate and cwd-guard hooks in .claude/settings.json or
+tools/hooks/ would run twice next to the plugin's. They are listed, with the doc lines that
+mention them, under `old_hooks` (separate from `missing`). Detection is by name: read the hits.
+
 Exit codes: 0 = report produced (even if things are missing), 2 = bad usage or
 the repo directory does not exist.
 """
@@ -28,8 +38,33 @@ import sys
 
 GAME_DOCS = ["VISION.md", "DESIGN.md", "GAMEPLAY.md", "HOW_TO_PLAY.md", "design-ideas.md"]
 ISSUE_TEMPLATES = ["feature.yml", "bug_report.yml", "chore.yml", "research.yml"]
-GAME_SECTION_RE = re.compile(r"^##[ 	]+Game-specific process\b", re.MULTILINE)  # a level-2 heading, not "###"
+GAME_SECTION_RE = re.compile(r"^##[ \t]+Game-specific process\b", re.MULTILINE | re.IGNORECASE)  # a level-2 heading, not "###"
 IDEAS_POINTER = "design-ideas.md"
+TEMPLATE_EXTRA = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir,
+                              "templates", "kinds", "game", "contributing-extra.md")
+SUBSECTION_RE = re.compile(r"^###[ \t]+(.+?)[ \t]*$", re.MULTILINE)
+HEADING_RE = re.compile(r"^#{1,6}[ \t]+(.+?)[ \t]*$", re.MULTILINE)
+ENGINE_HEADING = "engine conventions"
+# Headings that mean the repo has its own engine/code conventions. A bare "Commit conventions"
+# or "Branch naming conventions" does not count: those say nothing about the engine.
+_CONVENTION_WORDS = r"(?:engine|godot|unity|unreal|gdscript|coding|code|style|language)"
+OWN_CONVENTIONS_RE = re.compile(
+    r"cross-platform|translatable"
+    r"|\b" + _CONVENTION_WORDS + r"\b[^\n]*\bconventions?\b"
+    r"|\bconventions?\b[^\n]*\b" + _CONVENTION_WORDS + r"\b", re.IGNORECASE)
+# Other spellings of the template's subsection headings, compared with punctuation removed.
+SUBSECTION_ALIASES = {
+    "gamedocs": {"gamedocuments", "gamedocumentation", "gamedesigndocs"},
+    "playtesting": {"playtest", "playtests", "playtestingthegame"},
+}
+# Older project-level copies of the plugin's two hooks, matched by name.
+OLD_HOOKS = {
+    "merge-gate": re.compile(r"block[-_]merge|merge[-_]gate|ci[-_]red", re.IGNORECASE),
+    "cwd-guard": re.compile(r"guard[-_]repo[-_]cwd|cwd[-_]guard|repo[-_]cwd", re.IGNORECASE),
+}
+HOOK_DIR = "tools/hooks"
+DOC_FILES = ["CONTRIBUTING.md", "CLAUDE.md", "README.md"]
+SCRIPT_RE = re.compile(r"[\w.-]+\.(?:sh|py|ps1|js)")
 
 
 def read(path):
@@ -55,16 +90,109 @@ def load_marker(repo):
         return {}, ".claude/workflow.json exists but cannot be read (%s); treated as absent" % e
 
 
+def outside_fences(text):
+    """The text without fenced code blocks, so a `# comment` in a code sample is not a heading."""
+    out, fence = [], None
+    for line in text.splitlines():
+        m = re.match(r"^[ \t]{0,3}(`{3,}|~{3,})", line)
+        if m:
+            if fence is None:
+                fence = m.group(1)[0]
+            elif m.group(1)[0] == fence:
+                fence = None
+            continue
+        if fence is None:
+            out.append(line)
+    return "\n".join(out)
+
+
+def template_subsections():
+    """Headings of the game template's ### subsections, in order ([] if the template is unreadable)."""
+    text = read(TEMPLATE_EXTRA)
+    return SUBSECTION_RE.findall(text) if text else []
+
+
+def squash(heading):
+    return re.sub(r"[^a-z0-9]", "", heading.lower())
+
+
+def has_heading(sub, headings):
+    """True if the repo has the template subsection `sub` under its own name or a known alias."""
+    key = squash(sub)
+    wanted = {key} | SUBSECTION_ALIASES.get(key, set())
+    return any(squash(h) in wanted for h in headings)
+
+
+def hook_kind(text):
+    for kind, rx in OLD_HOOKS.items():
+        if rx.search(text):
+            return kind
+    return None
+
+
+def find_old_hooks(repo):
+    """Project-level copies of the plugin's hooks, and the doc lines that mention them."""
+    settings, files, names, notes = [], [], set(), []
+    for fname in ("settings.json", "settings.local.json"):
+        text = read(os.path.join(repo, ".claude", fname))
+        if text is None:
+            continue
+        try:
+            data = json.loads(text)
+        except ValueError:
+            notes.append(".claude/%s could not be parsed as JSON, so its hooks were not checked: read it yourself" % fname)
+            continue
+        hooks = data.get("hooks") if isinstance(data, dict) else None
+        if not isinstance(hooks, dict):
+            continue
+        for event, groups in hooks.items():
+            for group in groups if isinstance(groups, list) else []:
+                entries = group.get("hooks") if isinstance(group, dict) else None
+                for h in entries if isinstance(entries, list) else []:
+                    cmd = h.get("command") if isinstance(h, dict) else None
+                    if not isinstance(cmd, str) or "CLAUDE_PLUGIN_ROOT" in cmd:
+                        continue  # the plugin's own entry, not an old copy
+                    kind = hook_kind(cmd)
+                    if kind:
+                        settings.append({"file": ".claude/" + fname, "event": event,
+                                         "matcher": group.get("matcher"), "hook": kind, "command": cmd})
+                        names.update(n for n in SCRIPT_RE.findall(cmd) if hook_kind(n))
+    hook_dir = os.path.join(repo, *HOOK_DIR.split("/"))
+    if os.path.isdir(hook_dir):
+        for n in sorted(os.listdir(hook_dir)):
+            kind = hook_kind(n)
+            if kind and os.path.isfile(os.path.join(hook_dir, n)):
+                files.append({"path": HOOK_DIR + "/" + n, "hook": kind})
+                names.add(n)
+    refs = []
+    if settings or files:
+        docs = list(DOC_FILES)
+        for root, dirs, fs in os.walk(os.path.join(repo, "docs")):
+            dirs.sort()
+            docs += [os.path.relpath(os.path.join(root, f), repo).replace(os.sep, "/")
+                     for f in sorted(fs) if f.lower().endswith(".md")]
+        needles = sorted(names | {HOOK_DIR + "/" + n for n in names})
+        for rel in docs:
+            text = read(os.path.join(repo, *rel.split("/")))
+            for i, line in enumerate((text or "").splitlines(), 1):
+                if any(n in line for n in needles):
+                    refs.append({"file": rel, "line": i, "text": line.strip()[:160]})
+    return {"settings": settings, "files": files, "doc_references": refs, "notes": notes}
+
+
 def check(repo, kind_arg):
     cfg, note = load_marker(repo)
     components = cfg.get("components") if isinstance(cfg.get("components"), dict) else {}
     on = lambda name: components.get(name, True) is not False
 
+    marker_file = os.path.join(repo, ".claude", "workflow.json")
+    marker = ("missing" if not os.path.isfile(marker_file)
+              else "unreadable" if note else "no kind" if not cfg.get("kind") else "ok")
     kind, kind_source = cfg.get("kind"), "workflow.json"
     if not kind:
         kind, kind_source = (kind_arg, "--kind") if kind_arg else ("game", "assumed (bootstrap default)")
 
-    missing, present = [], []
+    missing, present, skipped = [], [], []
 
     def want(path, what, template):
         full = os.path.join(repo, *path.split("/"))
@@ -97,12 +225,38 @@ def check(repo, kind_arg):
         for d in GAME_DOCS:
             want("docs/" + d, "game doc", "kinds/game/" + d)
         contributing = read(os.path.join(repo, "CONTRIBUTING.md"))
-        if contributing is not None and not GAME_SECTION_RE.search(contributing):
-            missing.append({
-                "path": "CONTRIBUTING.md", "type": "section",
-                "what": "the 'Game-specific process' section",
-                "template": "kinds/game/contributing-extra.md",
-            })
+        if contributing is not None:
+            contributing = outside_fences(contributing)
+            headings = HEADING_RE.findall(contributing)
+            own_conventions = any(OWN_CONVENTIONS_RE.search(h) for h in headings)
+            if not GAME_SECTION_RE.search(contributing):
+                entry = {
+                    "path": "CONTRIBUTING.md", "type": "section",
+                    "what": "the 'Game-specific process' section",
+                    "template": "kinds/game/contributing-extra.md",
+                }
+                if own_conventions:
+                    entry["omit_subsections"] = ["Engine conventions"]
+                    entry["what"] += " (append without its Engine conventions subsection: the repo has its own conventions)"
+                missing.append(entry)
+            else:
+                subs = template_subsections()
+                if not subs:
+                    note = (note + "; " if note else "") + "game template contributing-extra.md not found, subsections were not checked"
+                for sub in subs:
+                    if has_heading(sub, headings):
+                        continue
+                    if sub.lower() == ENGINE_HEADING and own_conventions:
+                        skipped.append({
+                            "path": "CONTRIBUTING.md", "subsection": sub,
+                            "why": "placeholder-only, and the repo already has its own conventions",
+                        })
+                        continue
+                    missing.append({
+                        "path": "CONTRIBUTING.md", "type": "subsection",
+                        "what": "the '%s' subsection of the Game-specific process section" % sub,
+                        "template": "kinds/game/contributing-extra.md",
+                    })
         claude = read(os.path.join(repo, "CLAUDE.md"))
         if claude is not None and IDEAS_POINTER not in claude:
             missing.append({
@@ -115,14 +269,24 @@ def check(repo, kind_arg):
         "repo": os.path.abspath(repo),
         "kind": kind,
         "kind_source": kind_source,
+        "marker": marker,
         "note": note,
         "missing": missing,
+        "skipped": skipped,
+        "old_hooks": find_old_hooks(repo),
         "present": [p["path"] for p in present],
     }
 
 
 def render(report):
-    out = ["Repo: %s" % report["repo"], "Kind: %s (from %s)" % (report["kind"], report["kind_source"])]
+    out = ["Repo: %s" % report["repo"]]
+    if report["kind_source"].startswith("assumed"):
+        why = (".claude/workflow.json has no kind" if report.get("marker") == "no kind"
+               else "no usable .claude/workflow.json was found")
+        out.append("Kind: %s (%s, so %s was assumed; pass --kind to say otherwise)"
+                   % (report["kind"], why, report["kind"]))
+    else:
+        out.append("Kind: %s (from %s)" % (report["kind"], report["kind_source"]))
     if report["note"]:
         out.append("Note: " + report["note"])
     if not report["missing"]:
@@ -131,6 +295,21 @@ def render(report):
         out.append("Missing (%d):" % len(report["missing"]))
         for m in report["missing"]:
             out.append("  - %s [%s]: %s  (template: %s)" % (m["path"], m["type"], m["what"], m["template"]))
+    for sk in report["skipped"]:
+        out.append("Not offered: the '%s' subsection of %s (%s)." % (sk["subsection"], sk["path"], sk["why"]))
+    oh = report["old_hooks"]
+    for n in oh["notes"]:
+        out.append("Note: " + n)
+    if oh["settings"] or oh["files"]:
+        out.append("Old project hooks (they would run twice next to the plugin's; offer to remove):")
+        for h in oh["settings"]:
+            out.append("  - %s [%s] %s %s: %s" % (h["file"], h["hook"], h["event"], h["matcher"] or "", h["command"]))
+        for f in oh["files"]:
+            out.append("  - %s [%s script]" % (f["path"], f["hook"]))
+        if oh["doc_references"]:
+            out.append("  Doc lines that mention them (update after removing):")
+            for r in oh["doc_references"]:
+                out.append("    %s:%d: %s" % (r["file"], r["line"], r["text"]))
     out.append("Already present (%d): left untouched." % len(report["present"]))
     return "\n".join(out)
 
@@ -141,6 +320,10 @@ def main(argv):
     ap.add_argument("--kind", choices=["game", "web", "library", "tool", "other"])
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args(argv)
+    try:
+        sys.stdout.reconfigure(errors="backslashreplace")
+    except (AttributeError, ValueError):
+        pass
     if not os.path.isdir(args.repo):
         print("not a directory: %s" % args.repo, file=sys.stderr)
         return 2
