@@ -81,6 +81,14 @@ mechanism - "the report downloads as a CSV" rather than "write exportCsv()".
 Types: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`. Scope is optional
 and usually matches an `area:` label.
 
+## Line endings
+
+Text files use **LF** in the repo and in the working tree (`.gitattributes` and
+`.editorconfig` enforce it; only Windows-only scripts such as `*.ps1` are CRLF). Add to
+a doc with your editor or the Edit tool, not by hand-typing carriage returns, and check
+`git diff` shows only the lines you meant. A file that predates this and is still CRLF
+keeps CRLF for appends until a separate `git add --renormalize .` commit converts it.
+
 ## Writing docs
 
 Write for two readers: a person skimming, and an AI session starting cold in this repo (or
@@ -189,9 +197,8 @@ polish as its own issue.
 - **Nothing outward-facing without asking.** Skills that create things on
   GitHub (repo, board, labels) or on disk must say what they will do and wait
   for a yes first; keep that wording intact when editing them.
-- **Line endings.** Scripts must stay LF (`.gitattributes` enforces it; CRLF
-  after a shebang breaks bash). Only `*.ps1` is CRLF. Append to existing docs
-  with the Edit tool rather than shell redirects so endings never mix.
+- **Scripts stay LF.** CRLF after a shebang breaks bash, and the hooks and test suites
+  are bash (see "Line endings").
 - **Test suites delete only through `safe_rm`.** `tests/_safe_rm.sh` refuses any
   delete outside the throwaway folders a suite registered with `safe_rm_allow`. Never
   call `rm` directly in a suite: an earlier helper deleted real files from the working
