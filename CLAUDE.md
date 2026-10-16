@@ -21,6 +21,8 @@ loads into every session) - only what's worth knowing before doing anything.
 - **This repo uses its own workflow.** The plugin's hooks are live here
   because `.claude/workflow.json` exists. Don't edit `hooks/` or the skills
   from a cached plugin copy under `~/.claude/plugins`; change this repo.
+- **Stray design thoughts go in `docs/design-ideas.md`**, in the owner's words with a status,
+  not into the backlog. An open "revisit" issue on the board points at an entry there.
 - **Hooks must stay inert in projects without the marker** - see
   "Plugin conventions" in CONTRIBUTING.md.
 - **Full workflow** (branching, commits, issues/board, testing, style):
