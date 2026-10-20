@@ -42,7 +42,7 @@ jobs:
         # The matrix is built from the trigger: a job that is never created
         # leaves no check, whereas a job-level `if` cannot read the matrix and
         # leaves a skipped check. On a pull request `inputs.macos` is empty,
-        # so only the first list runs.
+        # so the second list (without macOS) is used.
         include: ${{ fromJSON(inputs.macos && '{{CI_MATRIX_WITH_MACOS}}' || '{{CI_MATRIX_ALWAYS}}') }}
     steps:
       - uses: actions/checkout@v4

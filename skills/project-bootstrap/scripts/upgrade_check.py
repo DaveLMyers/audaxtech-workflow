@@ -211,8 +211,6 @@ def find_shadowing_skills(repo):
 
 # The on-request form: a boolean `macos` input under workflow_dispatch.inputs. Every line of the block is indented,
 # so the match stops at the next top-level key (jobs:) and a job that happens to be called macos does not count.
-# The on-request form: a boolean `macos` input under workflow_dispatch.inputs. Every line of the block is indented,
-# so the match stops at the next top-level key (jobs:) and a job that happens to be called macos does not count.
 ON_REQUEST_RE = re.compile(
     r"workflow_dispatch[ \t]*:[ \t]*\n(?:[ \t]+[^\n]*\n)*?[ \t]+inputs[ \t]*:[ \t]*\n"
     r"(?:[ \t]+[^\n]*\n)*?[ \t]+macos[ \t]*:[ \t]*\n(?:[ \t]+[^\n]*\n)*?[ \t]+type[ \t]*:[ \t]*['\"]?boolean\b")
