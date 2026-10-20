@@ -42,6 +42,18 @@ need renegotiating when collaborators join.
 
 ---
 
+## 2026-10-20 - macOS CI runs only on request
+
+**Context:** The macOS runner regularly queued for ~10 minutes, holding up every PR.
+
+**Decision:** CI runs Linux and Windows on every PR and push to `main`. The macOS job runs only via manual `workflow_dispatch` with `macos=true`, e.g. before a release.
+
+**Why:** Faster PR feedback; macOS-only breaks (like the `timeout` one above) are rare and are caught at release time instead. Trade-off: a macOS regression can now merge unnoticed until someone asks for that run.
+
+**Related:** issue #37
+
+---
+
 ## 2026-10-14 - Upgrade mode is a read-only check plus owner-approved additions
 
 **Context:** Older repos (critter-wars before its docs were added) drift from the templates, and issue #3 asked for an upgrade mode that never overwrites anything.
