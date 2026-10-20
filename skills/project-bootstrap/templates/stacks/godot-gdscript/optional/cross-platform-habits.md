@@ -35,3 +35,7 @@ entry.
   is intentionally unsupported (say, mouse-only), don't make a function
   reachable only through another (a keyboard shortcut should be a convenience
   next to something clickable; Ctrl and Cmd differ).
+- **PR check:** (review) read the diff against this list. Look at what it touches:
+  any `OS.` call, a path built by hand, a new add-on or shader, a test comparing
+  floats exactly. A break needs a stated reason in the PR and a DECISIONS.md
+  entry, and the PR description says the check was done.

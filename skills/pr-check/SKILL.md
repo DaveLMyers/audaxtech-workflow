@@ -23,6 +23,19 @@ project wins.
 - Read the project's CONTRIBUTING.md if you haven't this session, and the
   project's own `run` skill for how to boot and test it.
 - Identify the PR (`gh pr view`) and the issue it closes.
+- Find the project's own checks in CONTRIBUTING.md: the items under a
+  **`### Project PR checks`** subsection (under Pull requests), plus any line
+  elsewhere that begins (after any bullet marker) with bold **`PR check:`** (the stack modules write
+  these next to the rule they enforce). Each is part of this checklist: run it
+  with the step it names (2 tests, 3 review, 4 live, 5 docs), or after step 3 if
+  it names none. Project checks add to the six steps and never replace one. Say
+  in the PR description which ran. None found means the project has none (the
+  template's "None yet." line is a placeholder, not an item). On a docs-only change
+  (below) a project check that needs something to run is skipped like steps 2 and 4;
+  one that is a read of the diff still applies.
+- Project-specific checks live in that subsection, not in a project-level
+  `.claude/skills/pr-check`: a copy there shadows this skill, stops getting its
+  updates, and skips steps added since it was made.
 
 ## When to run
 

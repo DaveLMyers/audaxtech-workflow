@@ -22,3 +22,6 @@ cheaper to start that way than to retrofit it. State the source language
   that may only go down; require it to match the count exactly so slack can't
   let new text in unseen). It is a line-based check and can miss things: the
   habit is the rule, the test is the backstop.
+- **PR check:** (review) read the diff for new labels, buttons, hints and messages
+  yourself, since the test is line-based and can miss some. Never raise the
+  baseline number to get the test to pass: wrap the text instead.
