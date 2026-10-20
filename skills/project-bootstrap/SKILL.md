@@ -201,6 +201,13 @@ repo up to date, or when a session in such a repo finds the convention missing.
    README, `docs/`) and offer to reword each to say the audaxtech-workflow plugin provides
    the hook. If the user keeps an old copy, say plainly that it will run twice, and
    consider `components.merge_gate_hook` / `cwd_guard_hook: false` instead.
+   **Shadowing skills.** If the report lists `shadowing_skills` (a project copy of
+   `pr-check` or another plugin skill), read the copy and diff it against the plugin's.
+   What is project-specific (extra review checks, doc rules) moves into CONTRIBUTING.md:
+   checks under a `### Project PR checks` subsection of Pull requests, each naming its
+   step, or a `**PR check:**` line next to the rule it enforces. Show that move and the
+   deletion of the copy (`git rm`), and do both only after a yes. Everything in the copy
+   that only restates the plugin's steps is dropped, not moved.
 5. **Write `.claude/workflow.json` if it is missing** (see "The workflow.json file" above
    for the keys to keep and drop and for building the `board` block with `board_json.py`).
 6. **GitHub-side pieces** (new board, labels) are not part of an upgrade unless the

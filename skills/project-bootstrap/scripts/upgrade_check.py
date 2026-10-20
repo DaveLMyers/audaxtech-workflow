@@ -27,6 +27,11 @@ Old project hooks: copies of the merge-gate and cwd-guard hooks in .claude/setti
 tools/hooks/ would run twice next to the plugin's. They are listed, with the doc lines that
 mention them, under `old_hooks` (separate from `missing`). Detection is by name: read the hits.
 
+Shadowing skills: a folder under .claude/skills/ named like one of the plugin's own skills (pr-check, work-issue, ...)
+is listed under `shadowing_skills`. The project's copy wins the plain name, stops getting the plugin's updates and
+skips steps added since it was made. Detection is by folder name; read the copy to see what is project-specific in it.
+A project's own skills (such as the `run` skill) are never listed.
+
 Exit codes: 0 = report produced (even if things are missing), 2 = bad usage or
 the repo directory does not exist.
 """
@@ -63,6 +68,7 @@ OLD_HOOKS = {
     "cwd-guard": re.compile(r"guard[-_]repo[-_]cwd|cwd[-_]guard|repo[-_]cwd", re.IGNORECASE),
 }
 HOOK_DIR = "tools/hooks"
+PLUGIN_SKILLS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir)
 DOC_FILES = ["CONTRIBUTING.md", "CLAUDE.md", "README.md"]
 SCRIPT_RE = re.compile(r"[\w.-]+\.(?:sh|py|ps1|js)")
 
@@ -180,6 +186,18 @@ def find_old_hooks(repo):
     return {"settings": settings, "files": files, "doc_references": refs, "notes": notes}
 
 
+def find_shadowing_skills(repo):
+    """Project skills under .claude/skills/ that share a folder name with a plugin skill."""
+    def skill_names(base):
+        try:
+            return {n for n in os.listdir(base) if os.path.isfile(os.path.join(base, n, "SKILL.md"))}
+        except OSError:
+            return set()
+    plugin = skill_names(PLUGIN_SKILLS_DIR)
+    mine = skill_names(os.path.join(repo, ".claude", "skills"))
+    return [{"skill": n, "path": ".claude/skills/%s/SKILL.md" % n} for n in sorted(plugin & mine)]
+
+
 def check(repo, kind_arg):
     cfg, note = load_marker(repo)
     components = cfg.get("components") if isinstance(cfg.get("components"), dict) else {}
@@ -274,6 +292,7 @@ def check(repo, kind_arg):
         "missing": missing,
         "skipped": skipped,
         "old_hooks": find_old_hooks(repo),
+        "shadowing_skills": find_shadowing_skills(repo),
         "present": [p["path"] for p in present],
     }
 
@@ -310,6 +329,10 @@ def render(report):
             out.append("  Doc lines that mention them (update after removing):")
             for r in oh["doc_references"]:
                 out.append("    %s:%d: %s" % (r["file"], r["line"], r["text"]))
+    if report["shadowing_skills"]:
+        out.append("Project skills that shadow the plugin's (the copy wins the plain name and stops getting updates; offer to move what is project-specific into CONTRIBUTING.md and remove it):")
+        for sk in report["shadowing_skills"]:
+            out.append("  - %s [%s]" % (sk["path"], sk["skill"]))
     out.append("Already present (%d): left untouched." % len(report["present"]))
     return "\n".join(out)
 

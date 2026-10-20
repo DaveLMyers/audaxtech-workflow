@@ -123,3 +123,15 @@ need renegotiating when collaborators join.
 **Why:** The bump is a deliberate release gate, so a bad commit on `main` reaches no project until a release. The cost is that a fix merged without a bump ships nothing, which CONTRIBUTING says plainly. A project still cannot stay on an older version while others take a newer one.
 
 **Related:** #23
+
+---
+
+## 2026-10-20 - Project-specific PR checks live in CONTRIBUTING.md, never in a copy of pr-check
+
+**Context:** Phoenix had its own `.claude/skills/pr-check`, written before the plugin existed. It won the plain `pr-check` name, so the plugin's later steps (docs-only path, blind-check agents, `workflow.json` toggles) never ran there, and it drifted. It existed because a project's own checks (cross-platform and translatable-text habits, feel tests) had nowhere to go but a fork. The upgrade check reported "nothing missing" with the copy in place.
+
+**Decision:** `pr-check` reads the project's own checks from its CONTRIBUTING.md: the items under a `### Project PR checks` subsection, plus any line that begins with bold `PR check:` next to the rule it enforces (the Godot stack modules use these). Each names the step it belongs to and adds to the six standard steps, never replaces one. A project-level copy of a plugin skill is unsupported, and `upgrade_check.py` lists one under `shadowing_skills` so an upgrade can offer to move what is project-specific into CONTRIBUTING.md and remove the copy.
+
+**Why:** The plugin stays the single owner of the process, so an improvement made while working on one project reaches all of them on the next release; project rules stay with the project's other rules. The cost: a project check is prose that `pr-check` follows, not something a script enforces, and a project cannot override or skip a standard step (use `components.*` for that).
+
+**Related:** #33
