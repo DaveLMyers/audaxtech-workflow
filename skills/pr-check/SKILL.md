@@ -52,6 +52,13 @@ actually green on the PR (`gh pr checks`), not just that it passed locally. A
 red run is a "don't merge"; the plugin's merge hook enforces this for
 `gh pr merge` in sessions where it is active.
 
+**macOS runs only on request.** Run `python <this skill's base directory>/scripts/macos_ci.py <repo>`.
+macOS runners queue for 10+ minutes and cost ten times the minutes, so in this workflow no project's CI
+runs macOS on a pull request; the owner asks for it with `gh workflow run CI -f macos=true`. If the script
+lists a workflow file, the PR is not ready: the fix is the on-request form from project-bootstrap's upgrade
+mode, as its own change if this PR did not touch CI. There is no switch to turn this off. It applies to
+docs-only changes too, since it only reads the workflow files.
+
 ### 2. Tests pass, and test the right thing
 Run the suite. Then decide whether the change has **meaningfully complex
 logic** (real branching, an algorithm, rules that interact, math, spawn/

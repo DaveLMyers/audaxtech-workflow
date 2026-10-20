@@ -42,6 +42,18 @@ need renegotiating when collaborators join.
 
 ---
 
+## 2026-10-20 - pr-check enforces macOS-on-request in every project, with no opt-out
+
+**Context:** The entry below made macOS-on-request the default for projects the plugin bootstraps and gave `upgrade_check.py` a way to report older ones. That left existing projects on their own until someone ran an upgrade, and nothing caught macOS being added back by hand. The owner's rule is plain: macOS CI is off by default for every project that uses the plugin, new or existing, and runs only when they ask.
+
+**Decision:** `pr-check` step 1 runs `scripts/macos_ci.py`, which lists any workflow file that runs macOS on a pull request, using the same detector as `upgrade_check.py` so the term means one thing. A listed file means the PR is not ready; the fix is the on-request form from upgrade mode. No `workflow.json` switch turns the check off (`components.ci: false`, meaning no CI, skips it). Opting in stays one command: `gh workflow run CI -f macos=true`.
+
+**Why:** The plugin owns the process, so one improvement reaches every project on the next release without touching their files, and a project that hand-wrote the same rule (Phoenix, its #93) can drop its own wording and rely on this. The cost: enforcement happens when a PR is checked, not when the file is edited, and the detector is textual (see the entry below), so a CI file built an unusual way can slip past or be flagged wrongly. A project that really needs macOS on every PR has no supported way to say so; that is deliberate, and a switch can be added if the need is real.
+
+**Related:** #44
+
+---
+
 ## 2026-10-20 - macOS on request is the standard for every project the plugin sets up
 
 **Context:** The entry below covered only this repo's own `ci.yml` and said so. Projects the plugin bootstraps still got macOS on every PR, and Phoenix, which queued 8+ minutes on it, had to be fixed by hand (its issue #92).

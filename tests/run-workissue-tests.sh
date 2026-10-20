@@ -381,5 +381,50 @@ runcb rename
 echo "$CBERR" | grep -q "could not rename the default view" && [ $CBRC -eq 0 ] && ! echo "$CBERR" | grep -q "could not create" && echo "$CBOUT" | isjson \
   && ok "a failing rename only warns about the rename" || bad "rename failure" "rc=$CBRC $CBERR"
 
+echo "== pr-check's macOS check (macos_ci.py, issue #44): macOS runs only on request"
+MC="$HERE/../skills/pr-check/scripts/macos_ci.py"
+mkrepo() { mkdir -p "$W/$1/.github/workflows"; printf '%s\n' "$2" > "$W/$1/.github/workflows/ci.yml"; echo "$W/$1"; }
+mcx() { out="$(python "$MC" "$@" 2>&1)"; rc=$?; }
+PRMAC='name: CI
+on:
+  pull_request:
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]'
+ONREQ='name: CI
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      macos:
+        type: boolean
+        default: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include: ${{ fromJSON(inputs.macos && '"'"'[{"os":"macos-latest"}]'"'"' || '"'"'[{"os":"ubuntu-latest"}]'"'"') }}'
+mcx "$(mkrepo m1 "$PRMAC")"
+[ $rc -eq 1 ] && echo "$out" | grep -q "^  - .github/workflows/ci.yml$" && echo "$out" | grep -q "only on request"
+chk "a macOS runner on pull_request: exit 1, the file is listed, the fix is named" $? "rc=$rc $out"
+mcx "$(mkrepo m2 "$ONREQ")"; [ $rc -eq 0 ] && [ "$out" = "ok" ]; chk "the on-request form: ok, exit 0" $? "rc=$rc $out"
+mcx "$(mkrepo m3 'name: CI
+on: pull_request
+jobs:
+  test:
+    runs-on: ubuntu-latest')"; [ $rc -eq 0 ] && [ "$out" = "ok" ]; chk "Linux and Windows only: ok" $? "rc=$rc $out"
+mkdir -p "$W/m4"; mcx "$W/m4"; [ $rc -eq 0 ] && [ "$out" = "ok" ]; chk "no workflows folder: ok" $? "rc=$rc $out"
+M5="$(mkrepo m5 "$PRMAC")"; mkdir -p "$M5/.claude"; printf '{"version":1,"kind":"game","components":{"ci":false}}\n' > "$M5/.claude/workflow.json"
+mcx "$M5"; [ $rc -eq 0 ] && [ "$out" = "ok" ]; chk "components.ci switched off: ok" $? "rc=$rc $out"
+M6="$(mkrepo m6 "$PRMAC")"; printf '%s\n' "$ONREQ" > "$M6/.github/workflows/other.yaml"; BEFORE="$(cat "$M6/.github/workflows/ci.yml")"
+mcx "$M6"; [ $rc -eq 1 ] && [ "$BEFORE" = "$(cat "$M6/.github/workflows/ci.yml")" ]; chk "one bad file among several is still caught, and nothing is rewritten" $? "rc=$rc $out"
+mcx "$W/does-not-exist"; [ $rc -eq 2 ] && echo "$out" | grep -q "not a directory"; chk "a missing folder: exit 2" $? "rc=$rc $out"
+(cd "$M5" && python "$MC" >/dev/null 2>&1); [ $? -eq 0 ]; chk "no argument: checks the current folder" $? ""
+grep -q "macos_ci.py" "$HERE/../skills/pr-check/SKILL.md"; chk "pr-check's SKILL.md runs the check" $? ""
+
 echo; echo "passed: $PASS   failed: $FAIL"
 [ "$FAIL" -eq 0 ]
