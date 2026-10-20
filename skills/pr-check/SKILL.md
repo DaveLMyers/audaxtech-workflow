@@ -56,7 +56,9 @@ red run is a "don't merge"; the plugin's merge hook enforces this for
 macOS runners queue for 10+ minutes and cost ten times the minutes, so in this workflow no project's CI
 runs macOS on a pull request; the owner asks for it with `gh workflow run CI -f macos=true`. If the script
 lists a workflow file, the PR is not ready: the fix is the on-request form from project-bootstrap's upgrade
-mode, as its own change if this PR did not touch CI. There is no switch to turn this off. It applies to
+mode, as its own change if this PR did not touch CI. Off is the workflow's opinion, and a project may
+override it: `"ci": {"macos_on_every_pr": true}` in its `.claude/workflow.json` makes the script report ok,
+and it says so. Never set that for a project yourself; it is the owner's call. The check applies to
 docs-only changes too, since it only reads the workflow files.
 
 ### 2. Tests pass, and test the right thing

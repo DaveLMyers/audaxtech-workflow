@@ -9,7 +9,8 @@ pull request, else lists the files and exits 1. Exit 2 for a folder that does no
 
 It uses the same detector as project-bootstrap's upgrade_check.py (the `macos_every_pr` key), so "macOS on every PR"
 means one thing. Nothing is written. A repo with `components.ci: false` in .claude/workflow.json has no CI to check
-and is reported ok.
+and is reported ok. So is a repo that overrides the default with `"ci": {"macos_on_every_pr": true}` there: off is the
+workflow's opinion, and a project may always choose otherwise.
 """
 import os
 import sys
@@ -31,7 +32,11 @@ def main(argv):
     except ImportError:
         print("cannot find project-bootstrap/scripts/upgrade_check.py next to this skill", file=sys.stderr)
         return 2
-    found = upgrade_check.check(repo, None)["macos_every_pr"]
+    report = upgrade_check.check(repo, None)
+    found = report["macos_every_pr"]
+    if report["macos_override"]:
+        print("ok (this project overrides the default: ci.macos_on_every_pr is true in .claude/workflow.json)")
+        return 0
     if not found:
         print("ok")
         return 0

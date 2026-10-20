@@ -42,13 +42,15 @@ need renegotiating when collaborators join.
 
 ---
 
-## 2026-10-20 - pr-check enforces macOS-on-request in every project, with no opt-out
+## 2026-10-20 - pr-check enforces macOS-on-request in every project; a project may override it
 
-**Context:** The entry below made macOS-on-request the default for projects the plugin bootstraps and gave `upgrade_check.py` a way to report older ones. That left existing projects on their own until someone ran an upgrade, and nothing caught macOS being added back by hand. The owner's rule is plain: macOS CI is off by default for every project that uses the plugin, new or existing, and runs only when they ask.
+**Context:** The entry below made macOS-on-request the default for projects the plugin bootstraps and gave `upgrade_check.py` a way to report older ones. That left existing projects on their own until someone ran an upgrade, and nothing caught macOS being added back by hand. The owner's rule: macOS CI is off by default for every project that uses the plugin, new or existing, and runs only when they ask. The workflow is opinionated, and a project may always override an opinion.
 
-**Decision:** `pr-check` step 1 runs `scripts/macos_ci.py`, which lists any workflow file that runs macOS on a pull request, using the same detector as `upgrade_check.py` so the term means one thing. A listed file means the PR is not ready; the fix is the on-request form from upgrade mode. No `workflow.json` switch turns the check off (`components.ci: false`, meaning no CI, skips it). Opting in stays one command: `gh workflow run CI -f macos=true`.
+**Decision:** `pr-check` step 1 runs `scripts/macos_ci.py`, which lists any workflow file that runs macOS on a pull request, using the same detector as `upgrade_check.py` so the term means one thing. A listed file means the PR is not ready; the fix is the on-request form from upgrade mode. Opting in to a macOS run stays one command: `gh workflow run CI -f macos=true`.
 
-**Why:** The plugin owns the process, so one improvement reaches every project on the next release without touching their files, and a project that hand-wrote the same rule (Phoenix, its #93) can drop its own wording and rely on this. The cost: enforcement happens when a PR is checked, not when the file is edited, and the detector is textual (see the entry below), so a CI file built an unusual way can slip past or be flagged wrongly. A project that really needs macOS on every PR has no supported way to say so; that is deliberate, and a switch can be added if the need is real.
+**The override:** a project that wants macOS on every PR sets `"ci": {"macos_on_every_pr": true}` in `.claude/workflow.json`. Absent or false means the default (off). Only a boolean `true` counts, so a typo cannot switch it on. With it set, `macos_ci.py` and `upgrade_check.py` report nothing, and say the project overrides the default; the bootstrap template puts every `ci.matrix` entry in the always-on list. The key is a deliberate, visible statement in the project's own config, so a reader can see the project departs from the default. `components.ci: false` (no CI) also skips the check.
+
+**Why:** The plugin owns the process, so one improvement reaches every project on the next release without touching their files, and a project that hand-wrote the same rule (Phoenix, its #93) can drop its own wording and rely on this. The override keeps the opinion from becoming a rule a project cannot argue with. Cost: enforcement happens when a PR is checked, not when the file is edited, and the detector is textual (see the entry below), so an unusual CI file can slip past or be flagged wrongly.
 
 **Related:** #44
 
@@ -60,7 +62,7 @@ need renegotiating when collaborators join.
 
 **Decision:** macOS on request is part of the workflow, not a per-repo choice. The bootstrap CI template renders a `workflow_dispatch` trigger with a boolean `macos` input and builds the job matrix from it (`{{CI_MATRIX_ALWAYS}}` without macOS entries, `{{CI_MATRIX_WITH_MACOS}}` with them); entries whose `os` starts with `macos` are the on-request ones. `ci.matrix` still names everything CI can run. `upgrade_check.py` reports a workflow that triggers on `pull_request` and names a macOS runner without that input, as `macos_every_pr`, and upgrade mode offers the change.
 
-**Why:** Same reason as the entry below: PR feedback should not wait on a runner queue, and macOS minutes cost ten times as much. A matrix built from the trigger leaves no check at all when macOS is not asked for, so the merge-gate hook (which denies anything but pass or skipping) needs no change; a job-level `if` cannot read the matrix and would leave a skipped check. No `workflow.json` switch was added: the owner wants this everywhere, and a switch can come later if someone needs macOS on every PR.
+**Why:** Same reason as the entry below: PR feedback should not wait on a runner queue, and macOS minutes cost ten times as much. A matrix built from the trigger leaves no check at all when macOS is not asked for, so the merge-gate hook (which denies anything but pass or skipping) needs no change; a job-level `if` cannot read the matrix and would leave a skipped check. Whether a project may keep macOS on every PR is settled in the entry above: it may, with an explicit `ci.macos_on_every_pr` in its `workflow.json`.
 
 **Trade-off:** a macOS-only break can merge until someone asks for that run. Detection is by text (`pull_request` plus a `macos-` runner, comments ignored), so a workflow built another way can be missed or flagged wrongly; upgrade mode says to read the file first.
 

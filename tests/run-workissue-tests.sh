@@ -426,5 +426,14 @@ mcx "$W/does-not-exist"; [ $rc -eq 2 ] && echo "$out" | grep -q "not a directory
 (cd "$M5" && python "$MC" >/dev/null 2>&1); [ $? -eq 0 ]; chk "no argument: checks the current folder" $? ""
 grep -q "macos_ci.py" "$HERE/../skills/pr-check/SKILL.md"; chk "pr-check's SKILL.md runs the check" $? ""
 
+echo "== pr-check's macOS check: a project may override the default (ci.macos_on_every_pr)"
+ovrepo() { local d; d="$(mkrepo "$1" "$PRMAC")"; mkdir -p "$d/.claude"; printf '%s\n' "$2" > "$d/.claude/workflow.json"; echo "$d"; }
+mcx "$(ovrepo o1 '{"version":1,"kind":"game","ci":{"macos_on_every_pr":true}}')"
+[ $rc -eq 0 ] && echo "$out" | grep -q "^ok (this project overrides the default"; chk "ci.macos_on_every_pr true: ok, and the output says it is an override" $? "rc=$rc $out"
+mcx "$(ovrepo o2 '{"version":1,"kind":"game","ci":{"macos_on_every_pr":false}}')"; [ $rc -eq 1 ]; chk "ci.macos_on_every_pr false: the default applies, flagged" $? "rc=$rc $out"
+mcx "$(ovrepo o3 '{"version":1,"kind":"game","ci":{"macos_on_every_pr":"true"}}')"; [ $rc -eq 1 ]; chk "a string \"true\" is not an override: flagged" $? "rc=$rc $out"
+mcx "$(ovrepo o4 '{"version":1,"kind":"game","ci":{"matrix":[]}}')"; [ $rc -eq 1 ]; chk "a ci block without the key: the default applies, flagged" $? "rc=$rc $out"
+mcx "$(ovrepo o5 '{"version":1,"kind":"game","macos_on_every_pr":true}')"; [ $rc -eq 1 ]; chk "the key outside the ci block is not an override: flagged" $? "rc=$rc $out"
+
 echo; echo "passed: $PASS   failed: $FAIL"
 [ "$FAIL" -eq 0 ]
