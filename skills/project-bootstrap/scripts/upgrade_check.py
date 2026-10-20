@@ -209,11 +209,23 @@ def find_shadowing_skills(repo):
              for n in sorted(skill_names(os.path.join(repo, ".claude", "skills"))) if n.lower() in plugin], None)
 
 
+# The on-request form: a boolean `macos` input under workflow_dispatch.inputs. Every line of the block is indented,
+# so the match stops at the next top-level key (jobs:) and a job that happens to be called macos does not count.
+# The on-request form: a boolean `macos` input under workflow_dispatch.inputs. Every line of the block is indented,
+# so the match stops at the next top-level key (jobs:) and a job that happens to be called macos does not count.
+ON_REQUEST_RE = re.compile(
+    r"workflow_dispatch[ \t]*:[ \t]*\n(?:[ \t]+[^\n]*\n)*?[ \t]+inputs[ \t]*:[ \t]*\n"
+    r"(?:[ \t]+[^\n]*\n)*?[ \t]+macos[ \t]*:[ \t]*\n(?:[ \t]+[^\n]*\n)*?[ \t]+type[ \t]*:[ \t]*['\"]?boolean\b")
+COMMENT_RE = re.compile(r"(^|[ \t])#.*$")
+
+
 def find_macos_every_pr(repo):
     """Workflow files that run a macOS job on every pull request instead of only on request.
 
-    A file counts when, ignoring comment lines, it triggers on pull_request, names a macOS runner, and has no
-    `macos:` input under workflow_dispatch (the on-request form the CI template renders).
+    A file counts when, ignoring comments, it triggers on pull_request, names a macOS runner, and lacks the
+    on-request form (a boolean `macos` input under workflow_dispatch, which the CI template renders). Only
+    files directly under .github/workflows/ are read, as GitHub does. Text-based: it does not check that the
+    matrix is actually gated on the input, nor that every macOS job is.
     """
     wf = os.path.join(repo, ".github", "workflows")
     try:
@@ -225,9 +237,9 @@ def find_macos_every_pr(repo):
         text = read(os.path.join(wf, n))
         if text is None:
             continue
-        text = "\n".join(l for l in text.splitlines() if not l.lstrip().startswith("#"))
+        text = "\n".join(COMMENT_RE.sub("", l) for l in text.splitlines()) + "\n"
         if (re.search(r"\bpull_request\b", text) and re.search(r"\bmacos-", text, re.IGNORECASE)
-                and not (re.search(r"\bworkflow_dispatch\b", text) and re.search(r"^[ \t]+macos[ \t]*:", text, re.MULTILINE))):
+                and not ON_REQUEST_RE.search(text)):
             found.append(".github/workflows/" + n)
     return found
 
