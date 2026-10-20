@@ -410,5 +410,60 @@ asrt "$SC" "the folder name is matched ignoring case, and the report keeps the r
 python "$CHECK" "$SS" | grep -q "pr-check/SKILL.md \[pr-check\]"; chk "the text report names the shadowing copy" $? "$(python "$CHECK" "$SS" | tail -5)"
 BEFORE="$(snapshot "$SS")"; python "$CHECK" "$SS" >/dev/null; [ "$BEFORE" = "$(snapshot "$SS")" ]; chk "listing a shadowing skill changes nothing" $? ""
 
+echo "== macOS on every PR (the standard runs it only on request)"
+MP="$W/mp"; full_game "$MP"
+asrt "$MP" "no macOS in the workflow: nothing flagged" 'r["macos_every_pr"]==[]'
+CIPR='name: CI
+on:
+  pull_request:
+    branches: [main]
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - { name: "Linux", os: ubuntu-latest }
+          - { name: "macOS Apple Silicon", os: macos-latest }'
+put "$MP/.github/workflows/ci.yml" "$CIPR"
+asrt "$MP" "a pull_request workflow that names a macOS runner is flagged, with its path" 'r["macos_every_pr"]==[".github/workflows/ci.yml"]'
+python "$CHECK" "$MP" | grep -q "runs macOS on every PR"; chk "the text report names it" $? "$(python "$CHECK" "$MP" | tail -4)"
+BEFORE="$(snapshot "$MP")"; python "$CHECK" "$MP" >/dev/null; [ "$BEFORE" = "$(snapshot "$MP")" ]; chk "flagging macOS changes nothing" $? ""
+# the template, filled the way SKILL.md says, is the on-request form and is not flagged
+TPL="$HERE/../skills/project-bootstrap/templates/github/workflows/ci.yml.tmpl"
+RENDERED="$(sed -e 's/{{CI_MATRIX_WITH_MACOS}}/[{"name":"Linux","os":"ubuntu-latest"},{"name":"macOS Apple Silicon","os":"macos-latest"}]/' -e 's/{{CI_MATRIX_ALWAYS}}/[{"name":"Linux","os":"ubuntu-latest"}]/' -e 's/{{CI_STEPS}}//' "$TPL")"
+MR="$W/mr"; full_game "$MR"; put "$MR/.github/workflows/ci.yml" "$RENDERED"
+asrt "$MR" "the filled CI template (macOS only via workflow_dispatch) is not flagged" 'r["macos_every_pr"]==[]'
+printf '%s' "$RENDERED" | grep -q "workflow_dispatch:"; chk "the template has the workflow_dispatch trigger" $? ""
+printf '%s' "$RENDERED" | grep -q "inputs.macos"; chk "the template builds the matrix from inputs.macos" $? ""
+printf '%s' "$RENDERED" | grep -q "{{[A-Z_]*}}"; [ $? -ne 0 ]; chk "no placeholder is left in the filled template" $? "$(printf '%s' "$RENDERED" | grep '{{[A-Z_]*}}')"
+MC="$W/mc"; full_game "$MC"; put "$MC/.github/workflows/ci.yml" "name: CI
+on:
+  pull_request:
+    branches: [main]
+# macos-latest is slow, so it is not used
+jobs:
+  test:
+    runs-on: ubuntu-latest"
+asrt "$MC" "a macOS runner named only in a comment is not flagged" 'r["macos_every_pr"]==[]'
+MT="$W/mt"; full_game "$MT"; put "$MT/.github/workflows/release.yml" "name: Release
+on:
+  push:
+    tags: ['v*']
+jobs:
+  build:
+    runs-on: macos-latest"
+asrt "$MT" "a macOS job in a release workflow with no pull_request trigger is not flagged" 'r["macos_every_pr"]==[]'
+MD="$W/md"; full_game "$MD"; put "$MD/.github/workflows/ci.yml" "name: CI
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: macos-latest"
+asrt "$MD" "workflow_dispatch without a macos input does not make it on-request: flagged" 'r["macos_every_pr"]==[".github/workflows/ci.yml"]'
+MO="$W/mo"; full_game "$MO"; put "$MO/.github/workflows/ci.yml" "$CIPR"; put "$MO/.claude/workflow.json" '{"version":1,"kind":"game","components":{"ci":false}}'
+asrt "$MO" "components.ci switched off: not reported" 'r["macos_every_pr"]==[]'
+
 echo; echo "passed: $PASS   failed: $FAIL"
 [ "$FAIL" -eq 0 ]
