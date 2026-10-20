@@ -5,6 +5,14 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # macOS is slow to get a runner, so it runs only when asked for:
+  # `gh workflow run CI -f macos=true` (or the Run workflow button).
+  workflow_dispatch:
+    inputs:
+      macos:
+        description: "Also run the macOS job"
+        type: boolean
+        default: false
 
 # A rapid string of pushes to the same PR shouldn't queue a full run per push:
 # cancel anything a newer run has made moot. Only for pull requests - a run on
@@ -20,6 +28,7 @@ jobs:
   test:
     name: Tests (${{ matrix.name }})
     runs-on: ${{ matrix.os }}
+    if: ${{ matrix.os != 'macos-latest' || inputs.macos }}
     # A hung suite should fail fast, not hold a runner for the 6-hour default.
     timeout-minutes: 15
     # The plugin is meant to run wherever Claude Code does, so each OS runs the

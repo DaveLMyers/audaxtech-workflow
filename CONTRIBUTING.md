@@ -140,8 +140,9 @@ Merging without a bump ships nothing.
   yes to merge. A skill, template, `CLAUDE.md` or script is never docs-only.
 - Before calling any PR ready to merge, run the `pr-check` skill (from the
   audaxtech-workflow plugin; it reads `.claude/workflow.json` and this file).
-- CI (`.github/workflows/ci.yml`) runs the five suites in `tests/` on Linux,
-  macOS and Windows for every PR and push to `main`. It is not yet configured
+- CI (`.github/workflows/ci.yml`) runs the five suites in `tests/` on Linux
+  and Windows for every PR and push to `main`; macOS runs only on request
+  (`gh workflow run CI -f macos=true`), e.g. before a release. It is not yet configured
   as a *required* check in GitHub, so a red run is a hard "don't merge" on the
   honor system; this repo uses its own plugin's merge-gate hook (active
   because `.claude/workflow.json` exists), which enforces it for any Claude
