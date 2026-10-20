@@ -405,6 +405,8 @@ asrt "$SS" "a project's own skill (run) is not a shadow" 'r["shadowing_skills"]=
 put "$SS/.claude/skills/pr-check/SKILL.md"; put "$SS/.claude/skills/work-issue/SKILL.md"
 put "$SS/.claude/skills/other/notes.md"; mkdir -p "$SS/.claude/skills/toolchain-run"
 asrt "$SS" "pr-check and work-issue copies are listed with their paths; a folder without SKILL.md is not" '[(s["skill"],s["path"]) for s in r["shadowing_skills"]]==[("pr-check",".claude/skills/pr-check/SKILL.md"),("work-issue",".claude/skills/work-issue/SKILL.md")]'
+SC="$W/sc"; full_game "$SC"; put "$SC/.claude/skills/Pr-Check/SKILL.md"
+asrt "$SC" "the folder name is matched ignoring case, and the report keeps the real spelling" '[(s["skill"],s["path"]) for s in r["shadowing_skills"]]==[("pr-check",".claude/skills/Pr-Check/SKILL.md")]'
 python "$CHECK" "$SS" | grep -q "pr-check/SKILL.md \[pr-check\]"; chk "the text report names the shadowing copy" $? "$(python "$CHECK" "$SS" | tail -5)"
 BEFORE="$(snapshot "$SS")"; python "$CHECK" "$SS" >/dev/null; [ "$BEFORE" = "$(snapshot "$SS")" ]; chk "listing a shadowing skill changes nothing" $? ""
 

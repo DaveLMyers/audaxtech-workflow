@@ -187,19 +187,28 @@ def find_old_hooks(repo):
 
 
 def find_shadowing_skills(repo):
-    """Project skills under .claude/skills/ that share a folder name with a plugin skill."""
+    """Project skills under .claude/skills/ that share a folder name with a plugin skill.
+
+    Names are compared ignoring case (Windows and macOS file systems do). Returns (list, note);
+    the note is set when the plugin's skills folder cannot be read, so "none" is not trusted blindly.
+    """
     def skill_names(base):
         try:
             return {n for n in os.listdir(base) if os.path.isfile(os.path.join(base, n, "SKILL.md"))}
         except OSError:
             return set()
-    plugin = skill_names(PLUGIN_SKILLS_DIR)
-    mine = skill_names(os.path.join(repo, ".claude", "skills"))
-    return [{"skill": n, "path": ".claude/skills/%s/SKILL.md" % n} for n in sorted(plugin & mine)]
+    plugin = {n.lower() for n in skill_names(PLUGIN_SKILLS_DIR)}
+    if not plugin:
+        return [], "the plugin's skills folder was not found next to this script, so shadowing skills were not checked"
+    return ([{"skill": n.lower(), "path": ".claude/skills/%s/SKILL.md" % n}
+             for n in sorted(skill_names(os.path.join(repo, ".claude", "skills"))) if n.lower() in plugin], None)
 
 
 def check(repo, kind_arg):
     cfg, note = load_marker(repo)
+    shadowing, shadow_note = find_shadowing_skills(repo)
+    if shadow_note:
+        note = (note + "; " if note else "") + shadow_note
     components = cfg.get("components") if isinstance(cfg.get("components"), dict) else {}
     on = lambda name: components.get(name, True) is not False
 
@@ -292,7 +301,7 @@ def check(repo, kind_arg):
         "missing": missing,
         "skipped": skipped,
         "old_hooks": find_old_hooks(repo),
-        "shadowing_skills": find_shadowing_skills(repo),
+        "shadowing_skills": shadowing,
         "present": [p["path"] for p in present],
     }
 
