@@ -28,7 +28,6 @@ jobs:
   test:
     name: Tests (${{ matrix.name }})
     runs-on: ${{ matrix.os }}
-    if: ${{ matrix.os != 'macos-latest' || inputs.macos }}
     # A hung suite should fail fast, not hold a runner for the 6-hour default.
     timeout-minutes: 15
     # The plugin is meant to run wherever Claude Code does, so each OS runs the
@@ -38,10 +37,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - { name: "Linux", os: ubuntu-latest }
-          - { name: "macOS Apple Silicon", os: macos-latest }
-          - { name: "Windows", os: windows-latest }
+        # macOS is added only for a manual run with macos=true (see `on:`).
+        include: ${{ fromJSON(inputs.macos && '[{"name":"Linux","os":"ubuntu-latest"},{"name":"macOS Apple Silicon","os":"macos-latest"},{"name":"Windows","os":"windows-latest"}]' || '[{"name":"Linux","os":"ubuntu-latest"},{"name":"Windows","os":"windows-latest"}]') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
