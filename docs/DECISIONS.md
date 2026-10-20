@@ -42,6 +42,20 @@ need renegotiating when collaborators join.
 
 ---
 
+## 2026-10-20 - macOS on request is the standard for every project the plugin sets up
+
+**Context:** The entry below covered only this repo's own `ci.yml` and said so. Projects the plugin bootstraps still got macOS on every PR, and Phoenix, which queued 8+ minutes on it, had to be fixed by hand (its issue #92).
+
+**Decision:** macOS on request is part of the workflow, not a per-repo choice. The bootstrap CI template renders a `workflow_dispatch` trigger with a boolean `macos` input and builds the job matrix from it (`{{CI_MATRIX_ALWAYS}}` without macOS entries, `{{CI_MATRIX_WITH_MACOS}}` with them); entries whose `os` starts with `macos` are the on-request ones. `ci.matrix` still names everything CI can run. `upgrade_check.py` reports a workflow that triggers on `pull_request` and names a macOS runner without that input, as `macos_every_pr`, and upgrade mode offers the change.
+
+**Why:** Same reason as the entry below: PR feedback should not wait on a runner queue, and macOS minutes cost ten times as much. A matrix built from the trigger leaves no check at all when macOS is not asked for, so the merge-gate hook (which denies anything but pass or skipping) needs no change; a job-level `if` cannot read the matrix and would leave a skipped check. No `workflow.json` switch was added: the owner wants this everywhere, and a switch can come later if someone needs macOS on every PR.
+
+**Trade-off:** a macOS-only break can merge until someone asks for that run. Detection is by text (`pull_request` plus a `macos-` runner, comments ignored), so a workflow built another way can be missed or flagged wrongly; upgrade mode says to read the file first.
+
+**Related:** #39, supersedes the scope note in #37
+
+---
+
 ## 2026-10-20 - macOS CI runs only on request
 
 **Context:** The macOS runner regularly queued for ~10 minutes, holding up every PR.

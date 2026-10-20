@@ -40,7 +40,7 @@ bootstrap time.
 | `labels.area_presets` | `game`, `web`, `library`, `other` | Keyed by `kind`; the matching preset is proposed, then edited in the interview. Add your own kinds. |
 | `review.independent_review_required` | `true` | Governs the CONTRIBUTING "standing step" wording and pr-check step 3. |
 | `review.default_effort` | `medium` | Starting point for the effort-calibration guidance. |
-| `ci.matrix` | games: Linux, macOS Intel, macOS Apple Silicon, Windows; other kinds: Linux | List of `{name, os}`; rendered into the CI job matrix. Games default to every desktop platform because cross-platform is a baseline, not an afterthought. On a private repo, macOS minutes use the monthly Actions allowance ~10x faster than Linux (Windows ~2x); trim the list here if usage grows. |
+| `ci.matrix` | games: Linux, macOS Intel, macOS Apple Silicon, Windows; other kinds: Linux | List of `{name, os}`; rendered into the CI job matrix. Games default to every desktop platform because cross-platform is a baseline, not an afterthought. macOS entries run only on request (`gh workflow run CI -f macos=true`), never on a PR or push: the runner queues 10+ minutes and macOS minutes use the monthly Actions allowance ~10x faster than Linux (Windows ~2x). The list names what CI *can* run; trim it here if usage grows. |
 | `components.*` | all `true` | See below. |
 
 ## Components

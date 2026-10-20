@@ -32,6 +32,11 @@ is listed under `shadowing_skills`. The project's copy wins the plain name, stop
 skips steps added since it was made. Detection is by folder name; read the copy to see what is project-specific in it.
 A project's own skills (such as the `run` skill) are never listed.
 
+macOS on every PR: macOS runners queue for 10+ minutes and cost ten times the minutes, so the standard CI runs macOS
+only on request (a `workflow_dispatch` trigger with a `macos` input). A workflow file under .github/workflows/ that
+triggers on pull_request and names a macOS runner (`macos-...`) without that input is listed under `macos_every_pr`.
+Comment lines are ignored. Detection is by text, so read the file before changing it.
+
 Exit codes: 0 = report produced (even if things are missing), 2 = bad usage or
 the repo directory does not exist.
 """
@@ -204,6 +209,39 @@ def find_shadowing_skills(repo):
              for n in sorted(skill_names(os.path.join(repo, ".claude", "skills"))) if n.lower() in plugin], None)
 
 
+# The on-request form: a boolean `macos` input under workflow_dispatch.inputs. Every line of the block is indented,
+# so the match stops at the next top-level key (jobs:) and a job that happens to be called macos does not count.
+ON_REQUEST_RE = re.compile(
+    r"workflow_dispatch[ \t]*:[ \t]*\n(?:[ \t]+[^\n]*\n)*?[ \t]+inputs[ \t]*:[ \t]*\n"
+    r"(?:[ \t]+[^\n]*\n)*?[ \t]+macos[ \t]*:[ \t]*\n(?:[ \t]+[^\n]*\n)*?[ \t]+type[ \t]*:[ \t]*['\"]?boolean\b")
+COMMENT_RE = re.compile(r"(^|[ \t])#.*$")
+
+
+def find_macos_every_pr(repo):
+    """Workflow files that run a macOS job on every pull request instead of only on request.
+
+    A file counts when, ignoring comments, it triggers on pull_request, names a macOS runner, and lacks the
+    on-request form (a boolean `macos` input under workflow_dispatch, which the CI template renders). Only
+    files directly under .github/workflows/ are read, as GitHub does. Text-based: it does not check that the
+    matrix is actually gated on the input, nor that every macOS job is.
+    """
+    wf = os.path.join(repo, ".github", "workflows")
+    try:
+        names = sorted(n for n in os.listdir(wf) if n.lower().endswith((".yml", ".yaml")))
+    except OSError:
+        return []
+    found = []
+    for n in names:
+        text = read(os.path.join(wf, n))
+        if text is None:
+            continue
+        text = "\n".join(COMMENT_RE.sub("", l) for l in text.splitlines()) + "\n"
+        if (re.search(r"\bpull_request\b", text) and re.search(r"\bmacos-", text, re.IGNORECASE)
+                and not ON_REQUEST_RE.search(text)):
+            found.append(".github/workflows/" + n)
+    return found
+
+
 def check(repo, kind_arg):
     cfg, note = load_marker(repo)
     shadowing, shadow_note = find_shadowing_skills(repo)
@@ -302,6 +340,7 @@ def check(repo, kind_arg):
         "skipped": skipped,
         "old_hooks": find_old_hooks(repo),
         "shadowing_skills": shadowing,
+        "macos_every_pr": find_macos_every_pr(repo) if on("ci") else [],
         "present": [p["path"] for p in present],
     }
 
@@ -342,6 +381,10 @@ def render(report):
         out.append("Project skills that shadow the plugin's (the copy wins the plain name and stops getting updates; offer to move what is project-specific into CONTRIBUTING.md and remove it):")
         for sk in report["shadowing_skills"]:
             out.append("  - %s [%s]" % (sk["path"], sk["skill"]))
+    if report["macos_every_pr"]:
+        out.append("CI that runs macOS on every PR (macOS queues for 10+ minutes; the standard runs it only on request via workflow_dispatch; offer to change it):")
+        for p in report["macos_every_pr"]:
+            out.append("  - %s" % p)
     out.append("Already present (%d): left untouched." % len(report["present"]))
     return "\n".join(out)
 
