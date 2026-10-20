@@ -49,7 +49,7 @@ Personal defaults (GitHub owner, merge method, board columns, CI matrix, compone
 
 ## What is verified, and what is not
 
-Extracted from two real Godot projects, then tested piece by piece. CI runs all five test suites in `tests/` on Linux, macOS and Windows for every PR and is green on all three; it is the source of truth for what passes, and each suite's header says what it covers. Locally the suites are run on Windows with Git Bash.
+Extracted from two real Godot projects, then tested piece by piece. CI runs all five test suites in `tests/` on Linux and Windows for every PR, and on macOS when asked for (it was green on all three when last run together); it is the source of truth for what passes, and each suite's header says what it covers. Locally the suites are run on Windows with Git Bash.
 
 **Not yet verified:**
 - the skills' prose steps run end to end: upgrade mode's append step, the lighter docs-only path, writing the line-ending files into a brand-new project, and the recent `work-issue` guidance (CI after a PR opens, visual tuning loops, stray design ideas);
