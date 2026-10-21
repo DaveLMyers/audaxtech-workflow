@@ -561,5 +561,15 @@ printf '%s' "$RENDERED" | grep -q "type: boolean"; chk "the template's macos inp
 printf '%s' "$RENDERED" | grep -q "default: false"; chk "the template's macos input defaults to false" $? ""
 printf '%s' "$RENDERED" | grep -q "{{[A-Za-z0-9_]*}}"; [ $? -ne 0 ]; chk "no placeholder of any case or digit is left in the filled template" $? ""
 
+echo "== macOS on every PR: a project may override the default"
+OV="$W/ov"; full_game "$OV"; put "$OV/.github/workflows/ci.yml" "$CIPR"
+put "$OV/.claude/workflow.json" '{"version":1,"kind":"game","ci":{"macos_on_every_pr":true}}'
+asrt "$OV" "ci.macos_on_every_pr true: nothing is reported, and the report says it is an override" 'r["macos_every_pr"]==[] and r["macos_override"] is True'
+put "$OV/.claude/workflow.json" '{"version":1,"kind":"game","ci":{"macos_on_every_pr":"yes"}}'
+asrt "$OV" "a non-boolean value is not an override: reported, override false" 'r["macos_every_pr"]==[".github/workflows/ci.yml"] and r["macos_override"] is False'
+put "$OV/.claude/workflow.json" '{"version":1,"kind":"game"}'
+asrt "$OV" "no ci block: reported, override false" 'r["macos_every_pr"]==[".github/workflows/ci.yml"] and r["macos_override"] is False'
+asrt "$NW" "the override key is always present" '"macos_override" in r and r["macos_override"] is False'
+
 echo; echo "passed: $PASS   failed: $FAIL"
 [ "$FAIL" -eq 0 ]

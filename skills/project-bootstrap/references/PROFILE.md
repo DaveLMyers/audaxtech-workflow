@@ -41,6 +41,7 @@ bootstrap time.
 | `review.independent_review_required` | `true` | Governs the CONTRIBUTING "standing step" wording and pr-check step 3. |
 | `review.default_effort` | `medium` | Starting point for the effort-calibration guidance. |
 | `ci.matrix` | games: Linux, macOS Intel, macOS Apple Silicon, Windows; other kinds: Linux | List of `{name, os}`; rendered into the CI job matrix. Games default to every desktop platform because cross-platform is a baseline, not an afterthought. macOS entries run only on request (`gh workflow run CI -f macos=true`), never on a PR or push: the runner queues 10+ minutes and macOS minutes use the monthly Actions allowance ~10x faster than Linux (Windows ~2x). The list names what CI *can* run; trim it here if usage grows. |
+| `ci.macos_on_every_pr` | `false` (absent) | The workflow's opinion is that macOS never runs on a PR, only on request, for every project. Set `true` to override that for this project: the template puts every `ci.matrix` entry in the always-on list, and `pr-check` and `upgrade_check.py` stop reporting macOS on PRs. Only a boolean `true` counts. Never default it on; it is the owner's explicit choice. |
 | `components.*` | all `true` | See below. |
 
 ## Components

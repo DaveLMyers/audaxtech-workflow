@@ -36,6 +36,8 @@ macOS on every PR: macOS runners queue for 10+ minutes and cost ten times the mi
 only on request (a `workflow_dispatch` trigger with a `macos` input). A workflow file under .github/workflows/ that
 triggers on pull_request and names a macOS runner (`macos-...`) without that input is listed under `macos_every_pr`.
 Comment lines are ignored. Detection is by text, so read the file before changing it.
+A project can override the default with `"ci": {"macos_on_every_pr": true}` in .claude/workflow.json (only a boolean
+true counts); nothing is then reported, and the report says `macos_override: true`.
 
 Exit codes: 0 = report produced (even if things are missing), 2 = bad usage or
 the repo directory does not exist.
@@ -249,6 +251,9 @@ def check(repo, kind_arg):
         note = (note + "; " if note else "") + shadow_note
     components = cfg.get("components") if isinstance(cfg.get("components"), dict) else {}
     on = lambda name: components.get(name, True) is not False
+    # The owner's override of the default: only an explicit boolean true counts, so a typo cannot switch it on.
+    ci_cfg = cfg.get("ci") if isinstance(cfg.get("ci"), dict) else {}
+    macos_override = ci_cfg.get("macos_on_every_pr") is True
 
     marker_file = os.path.join(repo, ".claude", "workflow.json")
     marker = ("missing" if not os.path.isfile(marker_file)
@@ -340,7 +345,8 @@ def check(repo, kind_arg):
         "skipped": skipped,
         "old_hooks": find_old_hooks(repo),
         "shadowing_skills": shadowing,
-        "macos_every_pr": find_macos_every_pr(repo) if on("ci") else [],
+        "macos_every_pr": find_macos_every_pr(repo) if on("ci") and not macos_override else [],
+        "macos_override": macos_override,
         "present": [p["path"] for p in present],
     }
 
