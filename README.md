@@ -4,6 +4,10 @@ A [Claude Code](https://claude.com/claude-code) plugin: a project workflow **bui
 
 It encodes one opinionated way of working: every change is an issue on a board, work happens on a branch, a PR is not "done" until CI is green and an independent review has been run, and judgment calls are written down. The pieces below make that cheap to set up and hard to skip.
 
+## The flow at a glance
+
+![How a change flows from issue to main: board columns, the work-issue steps, the two human gates, and the always-on guards](docs/workflow.svg)
+
 ## What's in it
 
 | Piece | What it does |
