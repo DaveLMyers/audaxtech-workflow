@@ -3,6 +3,9 @@
   <desc>An issue moves across the board columns Backlog, Ready, In Progress, In Review and Done. The work-issue skill drives the steps in between, with two human gates (try it before pushing, and the merge decision). pr-check and the merge-gate hook guard the end.</desc>
   <defs>
     <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#475569"/></marker>
+    <g id="person"><circle r="17" fill="#d97706" stroke="#fff" stroke-width="2"/><circle cx="0" cy="-5" r="5" fill="#fff"/><path d="M-9 10a9 9 0 0 1 18 0z" fill="#fff"/></g>
+    <g id="shield"><circle r="17" fill="#dc2626" stroke="#fff" stroke-width="2"/><path d="M0-10L9-6V2C9 8 4 11 0 13C-4 11-9 8-9 2V-6Z" fill="#fff"/></g>
+    <g id="check"><circle r="17" fill="#16a34a" stroke="#fff" stroke-width="2"/><path d="M-8 0L-3 6L8-6" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></g>
     <style>
       .bg{fill:#f8fafc}
       .t{font-size:13px;fill:#0f172a}
@@ -22,7 +25,12 @@
   <rect class="bg" width="1200" height="800"/>
 
   <text class="title" x="40" y="48">How a change flows: issue to main</text>
-  <text class="s" x="40" y="72">Driven by the work-issue skill. Amber = you decide. Red = automatic guard. Every change is an issue; nothing merges on red CI.</text>
+  <text class="s" x="40" y="72">Driven by the work-issue skill. Every change is an issue; nothing merges on red CI.</text>
+
+  <!-- Legend -->
+  <use href="#person" x="660" y="40"/><text class="h" x="684" y="46">You decide</text>
+  <use href="#shield" x="830" y="40"/><text class="h" x="854" y="46">Automatic guard</text>
+  <use href="#check" x="1030" y="40"/><text class="h" x="1054" y="46">Finished</text>
 
   <!-- Board lane -->
   <text class="lane" x="40" y="110">THE BOARD</text>
@@ -105,6 +113,13 @@
 
   <path class="dash" d="M220 580V490"/>
   <path class="dash" d="M850 580V560H830V490"/>
+
+  <!-- Badges (drawn last so they sit on top of box corners) -->
+  <use href="#person" x="1030" y="250"/>
+  <use href="#person" x="490" y="388"/>
+  <use href="#shield" x="400" y="580"/>
+  <use href="#shield" x="790" y="580"/>
+  <use href="#check" x="240" y="388"/>
 
   <!-- Setup strip -->
   <rect x="40" y="700" width="1120" height="70" rx="10" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
