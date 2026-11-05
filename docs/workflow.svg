@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <title>audaxtech-workflow: how a change flows from idea to main</title>
+  <desc>An issue moves across the board columns Backlog, Ready, In Progress, In Review and Done. The work-issue skill drives the steps in between, with two human gates (try it before pushing, and the merge decision). pr-check and the merge-gate hook guard the end.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#475569"/></marker>
+    <style>
+      .bg{fill:#f8fafc}
+      .t{font-size:13px;fill:#0f172a}
+      .s{font-size:11.5px;fill:#475569}
+      .h{font-size:15px;font-weight:700;fill:#0f172a}
+      .title{font-size:24px;font-weight:700;fill:#0f172a}
+      .lane{font-size:12px;font-weight:700;letter-spacing:.08em;fill:#64748b}
+      .col{fill:#e2e8f0}
+      .step{fill:#fff;stroke:#94a3b8;stroke-width:1.5}
+      .gate{fill:#fef3c7;stroke:#d97706;stroke-width:2}
+      .guard{fill:#fee2e2;stroke:#dc2626;stroke-width:1.5}
+      .done{fill:#dcfce7;stroke:#16a34a;stroke-width:2}
+      .ln{stroke:#475569;stroke-width:1.8;fill:none;marker-end:url(#a)}
+      .dash{stroke:#94a3b8;stroke-width:1.5;fill:none;stroke-dasharray:5 4}
+    </style>
+  </defs>
+  <rect class="bg" width="1200" height="800"/>
+
+  <text class="title" x="40" y="48">How a change flows: issue to main</text>
+  <text class="s" x="40" y="72">Driven by the work-issue skill. Amber = you decide. Red = automatic guard. Every change is an issue; nothing merges on red CI.</text>
+
+  <!-- Board lane -->
+  <text class="lane" x="40" y="110">THE BOARD</text>
+  <g>
+    <rect class="col" x="40"  y="120" width="200" height="44" rx="8"/><text class="h" x="140" y="148" text-anchor="middle">Backlog</text>
+    <rect class="col" x="260" y="120" width="200" height="44" rx="8"/><text class="h" x="360" y="148" text-anchor="middle">Ready</text>
+    <rect class="col" x="480" y="120" width="200" height="44" rx="8"/><text class="h" x="580" y="148" text-anchor="middle">In Progress</text>
+    <rect class="col" x="700" y="120" width="200" height="44" rx="8"/><text class="h" x="800" y="148" text-anchor="middle">In Review</text>
+    <rect class="col" x="920" y="120" width="240" height="44" rx="8"/><text class="h" x="1040" y="148" text-anchor="middle">Done</text>
+    <path class="ln" d="M240 142H258"/><path class="ln" d="M460 142H478"/><path class="ln" d="M680 142H698"/><path class="ln" d="M900 142H918"/>
+  </g>
+  <text class="s" x="140" y="184" text-anchor="middle">captured, not refined</text>
+  <text class="s" x="360" y="184" text-anchor="middle">scoped, one type: + area: label</text>
+  <text class="s" x="580" y="184" text-anchor="middle">card moved at start</text>
+  <text class="s" x="800" y="184" text-anchor="middle">PR open</text>
+  <text class="s" x="1040" y="184" text-anchor="middle">merged to main, issue closed</text>
+
+  <!-- Steps lane -->
+  <text class="lane" x="40" y="236">"WORK ISSUE #N"  (work-issue skill)</text>
+
+  <!-- row 1 -->
+  <rect class="step" x="40"  y="250" width="200" height="86" rx="10"/>
+  <text class="h" x="56" y="274">1  Pre-flight</text>
+  <text class="s" x="56" y="294">git status, read issue,</text><text class="s" x="56" y="310">CONTRIBUTING, say the plan</text>
+
+  <rect class="step" x="290" y="250" width="200" height="86" rx="10"/>
+  <text class="h" x="306" y="274">2  Start</text>
+  <text class="s" x="306" y="294">card to In Progress,</text><text class="s" x="306" y="310">branch type/short-name</text>
+
+  <rect class="step" x="540" y="250" width="240" height="86" rx="10"/>
+  <text class="h" x="556" y="274">3  Implement + tests</text>
+  <text class="s" x="556" y="294">logic gets tests in the same PR;</text><text class="s" x="556" y="310">complex logic gets a blind check</text>
+
+  <polygon class="gate" points="830,250 1030,250 1030,336 830,336" />
+  <text class="h" x="846" y="274">4  GATE 1: you try it</text>
+  <text class="s" x="846" y="294">use it hands-on, locally.</text><text class="s" x="846" y="310">Nothing is pushed until</text><text class="s" x="846" y="326">you say so.</text>
+
+  <path class="ln" d="M240 293H288"/><path class="ln" d="M490 293H538"/><path class="ln" d="M780 293H828"/>
+
+  <!-- connector down from gate 1 to row 2 -->
+  <path class="ln" d="M930 336V372H1030V388"/>
+
+  <!-- row 2 -->
+  <rect class="step" x="930" y="388" width="230" height="86" rx="10"/>
+  <text class="h" x="946" y="412">5  Open PR</text>
+  <text class="s" x="946" y="432">Closes #N, DECISIONS entry</text><text class="s" x="946" y="448">if a judgment call, CI runs</text><text class="s" x="946" y="464">(card moves to In Review)</text>
+
+  <rect class="step" x="540" y="388" width="340" height="86" rx="10"/>
+  <text class="h" x="556" y="412">6  pr-check  (six checks, in order)</text>
+  <text class="s" x="556" y="432">runs  ·  tests right  ·  independent review</text>
+  <text class="s" x="556" y="448">verified live, not just read  ·  docs current</text><text class="s" x="556" y="464">PR description tells the story</text>
+
+  <polygon class="gate" points="290,388 490,388 490,474 290,474" />
+  <text class="h" x="306" y="412">7  GATE 2: merge?</text>
+  <text class="s" x="306" y="432">pr-check result in hand,</text><text class="s" x="306" y="448">you give an explicit yes.</text><text class="s" x="306" y="464">Never merges without it.</text>
+
+  <rect class="done" x="40" y="388" width="200" height="86" rx="10"/>
+  <text class="h" x="56" y="412">8  Merge + tidy</text>
+  <text class="s" x="56" y="432">squash to main, delete branch,</text><text class="s" x="56" y="448">verify issue closed and</text><text class="s" x="56" y="464">card is Done</text>
+
+  <path class="ln" d="M930 431H882"/><path class="ln" d="M540 431H492"/><path class="ln" d="M290 431H242"/>
+
+  <!-- loop back for findings -->
+  <path class="dash" d="M710 474V510H1060V480"/>
+  <text class="s" x="885" y="528" text-anchor="middle">findings or red CI: fix on the branch, re-run</text>
+
+  <!-- Guards -->
+  <text class="lane" x="40" y="566">ALWAYS ON  (hooks, inert in projects without .claude/workflow.json)</text>
+  <rect class="guard" x="40" y="580" width="360" height="90" rx="10"/>
+  <text class="h" x="56" y="604">Merge gate</text>
+  <text class="s" x="56" y="624">Denies gh pr merge unless every CI check</text><text class="s" x="56" y="640">is green. Runs inside Claude Code only,</text><text class="s" x="56" y="656">not a merge clicked in the GitHub UI.</text>
+
+  <rect class="guard" x="430" y="580" width="360" height="90" rx="10"/>
+  <text class="h" x="446" y="604">Wrong-repo guard</text>
+  <text class="s" x="446" y="624">Denies git commands that change things</text><text class="s" x="446" y="640">when run from a different repo than the</text><text class="s" x="446" y="656">project (a stale cd across sessions).</text>
+
+  <rect class="step" x="820" y="580" width="340" height="90" rx="10"/>
+  <text class="h" x="836" y="604">Review agents (called by pr-check)</text>
+  <text class="s" x="836" y="624">blind-spec-reviewer: what to test, from</text><text class="s" x="836" y="640">the spec alone.  test-saboteur: builds a</text><text class="s" x="836" y="656">wrong version the tests still accept.</text>
+
+  <path class="dash" d="M220 580V490"/>
+  <path class="dash" d="M850 580V560H830V490"/>
+
+  <!-- Setup strip -->
+  <rect x="40" y="700" width="1120" height="70" rx="10" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+  <text class="h" x="56" y="724">Once per project: project-bootstrap + toolchain-run</text>
+  <text class="s" x="56" y="744">Scaffolds CONTRIBUTING, DECISIONS log, issue/PR templates, CI, CLAUDE.md, the .claude/workflow.json marker (turns the hooks on) and this board with its labels.</text>
+  <text class="s" x="56" y="760">toolchain-run pins the engine version in the repo so nobody installs it system-wide. Upgrade mode adds only what an older repo is missing.</text>
+</svg>
