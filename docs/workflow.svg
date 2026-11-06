@@ -2,25 +2,25 @@
   <title>audaxtech-workflow: how one change is made, checked and added to the project</title>
   <desc>A change starts as a written task on a task board. Claude works through eight steps: get ready, start, build and test, a person tries it, share for checking, quality check, a person decides, finish. Two steps need a person (trying it, and deciding). A safety net of automatic guards runs the whole time.</desc>
   <defs>
-    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#475569"/></marker>
-    <g id="person"><circle r="19" fill="#d97706" stroke="#fff" stroke-width="2"/><circle cx="0" cy="-5" r="5.5" fill="#fff"/><path d="M-10 11a10 10 0 0 1 20 0z" fill="#fff"/></g>
-    <g id="shield"><circle r="19" fill="#dc2626" stroke="#fff" stroke-width="2"/><path d="M0-11L10-7V2C10 9 4 12 0 14C-4 12-10 9-10 2V-7Z" fill="#fff"/></g>
-    <g id="check"><circle r="19" fill="#16a34a" stroke="#fff" stroke-width="2"/><path d="M-9 0L-3 7L9-7" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#94a3b8"/></marker>
+    <g id="person"><circle r="19" fill="#f59e0b" stroke="#0f172a" stroke-width="2.5"/><circle cx="0" cy="-5" r="5.5" fill="#0f172a"/><path d="M-10 11a10 10 0 0 1 20 0z" fill="#0f172a"/></g>
+    <g id="shield"><circle r="19" fill="#ef4444" stroke="#0f172a" stroke-width="2.5"/><path d="M0-11L10-7V2C10 9 4 12 0 14C-4 12-10 9-10 2V-7Z" fill="#fff"/></g>
+    <g id="check"><circle r="19" fill="#4ade80" stroke="#0f172a" stroke-width="2.5"/><path d="M-9 0L-3 7L9-7" fill="none" stroke="#0f172a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g>
     <style>
-      .bg{fill:#f8fafc}
-      .t{font-size:14px;fill:#0f172a}
-      .s{font-size:14px;fill:#334155}
-      .h{font-size:17px;font-weight:700;fill:#0f172a}
-      .sub{font-size:16px;fill:#334155}
-      .title{font-size:28px;font-weight:700;fill:#0f172a}
-      .lane{font-size:13px;font-weight:700;letter-spacing:.07em;fill:#64748b}
-      .leg{font-size:17px;font-weight:700;fill:#0f172a}
-      .col{fill:#e2e8f0}
-      .step{fill:#fff;stroke:#94a3b8;stroke-width:1.5}
-      .gate{fill:#fef3c7;stroke:#d97706;stroke-width:2}
-      .guard{fill:#fee2e2;stroke:#dc2626;stroke-width:1.5}
-      .done{fill:#dcfce7;stroke:#16a34a;stroke-width:2}
-      .ln{stroke:#475569;stroke-width:2;fill:none;marker-end:url(#a)}
+      .bg{fill:#0f172a}
+      .t{font-size:14px;fill:#f1f5f9}
+      .s{font-size:14px;fill:#cbd5e1}
+      .h{font-size:17px;font-weight:700;fill:#f8fafc}
+      .sub{font-size:16px;fill:#cbd5e1}
+      .title{font-size:28px;font-weight:700;fill:#f8fafc}
+      .lane{font-size:13px;font-weight:700;letter-spacing:.07em;fill:#94a3b8}
+      .leg{font-size:17px;font-weight:700;fill:#f8fafc}
+      .col{fill:#334155}
+      .step{fill:#1e293b;stroke:#64748b;stroke-width:1.5}
+      .gate{fill:#422006;stroke:#f59e0b;stroke-width:2}
+      .guard{fill:#450a0a;stroke:#f87171;stroke-width:1.5}
+      .done{fill:#052e16;stroke:#4ade80;stroke-width:2}
+      .ln{stroke:#94a3b8;stroke-width:2;fill:none;marker-end:url(#a)}
       .dash{stroke:#94a3b8;stroke-width:1.6;fill:none;stroke-dasharray:5 4}
     </style>
   </defs>
@@ -123,7 +123,7 @@
   <use href="#shield" x="770" y="686"/>
 
   <!-- Setup strip -->
-  <rect x="40" y="846" width="1120" height="94" rx="10" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+  <rect x="40" y="846" width="1120" height="94" rx="10" fill="#172554" stroke="#60a5fa" stroke-width="1.5"/>
   <text class="h" x="56" y="874">Once per project: setup</text>
   <text class="s" x="56" y="898">Sets up the project rules, a decision log, task and review templates, automatic tests, the task board, and the switch</text>
   <text class="s" x="56" y="918">that turns on the safety net. Also pins the exact version of the engine or tool, so everyone runs the same one.</text>
