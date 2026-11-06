@@ -4,6 +4,28 @@ How work flows through this repo: branching, commits, issues, reviews. It
 applies solo today and is meant to keep working unchanged once other people
 join - the goal is not having to renegotiate process later.
 
+## The flow at a glance
+
+A change starts as a conversation or idea, is written up as an issue, and ends
+merged to `main`. A person decides at the diamonds; CI and the plugin's hooks
+guard the rest. A picture for a general audience is [docs/workflow.svg](docs/workflow.svg).
+
+```mermaid
+flowchart TD
+    A([Conversation or idea]) --> B[Issue written, added to the board<br/>Backlog, then Ready]
+    B --> C[Card to In Progress<br/>branch off main]
+    C --> D[Build, with tests]
+    D --> E[A person tries it locally]
+    E --> F[Push, open a pull request<br/>CI runs, card to In Review]
+    F --> G[pr-check: six checks]
+    G --> H{Problems found?}
+    H -- Yes --> D
+    H -- No --> I{A person approves the merge?}
+    I -- Not yet --> D
+    I -- No --> J([Set aside])
+    I -- Yes --> K[Squash merge, branch deleted<br/>card to Done]
+```
+
 ## Backlog & issue tracking
 
 All work is tracked as GitHub Issues on the [project board](https://github.com/users/DaveLMyers/projects/4) -

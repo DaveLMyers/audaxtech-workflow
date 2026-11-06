@@ -6,7 +6,9 @@ It encodes one opinionated way of working: every change is an issue on a board, 
 
 ## The flow at a glance
 
-![How a change flows from issue to main: board columns, the work-issue steps, the two human gates, and the always-on guards](docs/workflow.svg)
+![How one change is made, checked and added to the project: the task board, eight steps with two points where a person decides, and the automatic safety guards](docs/workflow.svg)
+
+The same flow as text, for contributors, is in [CONTRIBUTING.md](CONTRIBUTING.md#the-flow-at-a-glance).
 
 ## What's in it
 
@@ -75,6 +77,10 @@ bash tests/run-saferm-tests.sh
 claude plugin validate .
 ```
 All the test scripts are self-contained and clean up after themselves (they delete only through `tests/_safe_rm.sh`).
+
+## Contributing and security
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how work is done here, [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for how we treat each other, and [SECURITY.md](SECURITY.md) for reporting a vulnerability privately.
 
 ## License
 
