@@ -196,43 +196,56 @@ repo up to date, or when a session in such a repo finds the convention missing.
    table above: LF in the index with CRLF in the working tree on Windows is normal, and no
    renormalize is needed; check with `git ls-files --eol`). Show the diff first.
    **Session guide migration.** If the report lists `AGENTS.md [migration]` (the rules live in
-   CLAUDE.md and there is no AGENTS.md), offer it as its own item and show the result before
-   writing anything. Go through CLAUDE.md bullet by bullet. AGENTS.md gets what another coding
-   agent could act on (the rules, the facts such as which binary to run or where not to search, the
-   test commands, the pointers), in the original order; CLAUDE.md keeps `@AGENTS.md` plus what only
-   makes sense in Claude Code (hooks, skills, `.claude/` or `~/.claude` paths). Nothing is dropped.
-   Real projects have **mixed bullets**: a shared rule with a Claude-only pointer attached (a fact
-   plus "see the `run` skill", a rule plus "the plugin's cwd-guard hook backstops it"). Split the
-   bullet: the rule or fact goes to AGENTS.md, the pointer to CLAUDE.md. And a line that only
-   *names* Claude Code ("several Claude Code sessions") while the rule itself is generic stays
-   shared, reworded ("several agent sessions"); it is a judgment call, not a path test. Where a
-   shared rule needs the skill by name, say what the check is, then name the skill as the Claude way
-   to run it. Reword prose that describes how CLAUDE.md loads ("this file stays short, it loads into
-   every session") for its new home. Four more rules a real run needed:
-   **(a) Facts that live only in a Claude skill** (a project `run` skill holding the only copy of the
-   build and test commands): another agent cannot read the skill, so a vague pointer leaves it
-   stranded. Read the skill, say so, and offer to copy those commands into AGENTS.md, showing the
-   text; if the owner declines, AGENTS.md says in one line that they are in the Claude `run` skill, so
-   the gap is visible. Copy what is needed to set up, check, test and launch, plus the skill's rules a
-   person needs to use them safely (for example "always use the wrapper"); leave rarely used detail
-   (extra flags) in the skill and say so in one line. Tell the owner the commands now live in two
-   places, so they can drift. A Claude mechanism may stay in AGENTS.md only as a labeled pointer
-   ("in Claude Code, the X skill", "the Claude `run` skill"), never as the only source of a fact. **(b) No duplicates:** CLAUDE.md holds only what is Claude-only; do not
-   restate a shared rule in it. **(c) The stub's shape** is `templates/CLAUDE.md.tmpl`; hook sentences
-   join its hooks bullet, and drop the sentence for any hook switched off in `workflow.json`
-   (`components.merge_gate_hook` / `cwd_guard_hook`), so the stub never claims a gate the project does
-   not have. **(d) `AGENTS.md.tmpl` is a shape, not content:** the project's own
-   bullets win, and the template's `{{...}}` placeholders (toolchain, kind bullets) are not rendered
-   into a migration. **(e) The design-ideas pointer:** if the report also lists `CLAUDE.md [line]`, it is
-   part of the migration, so the pointer goes into the new AGENTS.md. Add just that sentence, not
-   the whole `agents-extra.md` bullet, which also names game docs that may not exist yet. **(f) New
-   files take the line endings of the file they replace** (`git ls-files --eol CLAUDE.md`), so on
-   Windows an LF index with a CRLF working tree is normal. **(g) Personal preferences:** this is a
-   project file, so leave the owner's wording in place, but if a line reads as a personal working
-   preference (the owner's global preferences live in `~/.claude/CLAUDE.md`), name it in your
-   summary and ask rather than moving it out. Tell the user which bullets were split or stayed in CLAUDE.md, and why. If they decline, leave CLAUDE.md alone: the repo keeps working as before. If the report
-   lists only `CLAUDE.md [line]` (AGENTS.md exists but CLAUDE.md lacks the import), add the
-   `@AGENTS.md` line at the top of CLAUDE.md and change nothing else.
+   CLAUDE.md and there is no AGENTS.md), offer it as its own item. Show the whole proposal once, in
+   your reply, before writing anything (the new AGENTS.md, the new CLAUDE.md, and any commands copied
+   from a skill), and ask once. Go through CLAUDE.md bullet by bullet:
+   - **What goes where.** AGENTS.md gets what another coding agent could act on (rules, facts such as
+     which binary to run or where not to search, test commands, pointers), in the original order.
+     CLAUDE.md gets `@AGENTS.md` plus what only makes sense in Claude Code (hooks, how to use a Claude
+     skill, `.claude/` or `~/.claude` paths). "Nothing is dropped" means no fact or rule is lost;
+     rewording is allowed where the points below call for it.
+   - **Mixed bullets.** A shared rule with a Claude-only pointer attached (a fact plus "see the `run`
+     skill"; a rule plus "the plugin's cwd-guard hook backstops it") is split: the rule or fact goes to
+     AGENTS.md, the pointer to CLAUDE.md. A line that only *names* Claude Code ("several Claude Code
+     sessions") while its rule is generic stays shared, reworded ("several agent sessions"). This is a
+     judgment call, not a path test.
+   - **A skill named in a shared rule.** Say what the check is, then name the skill as the Claude way
+     to run it ("in Claude Code, the `pr-check` skill"). A Claude mechanism may sit in AGENTS.md only
+     as such a labeled pointer, never as the only source of a fact. A fallback that works without the
+     plugin ("follow the checklist by hand from CONTRIBUTING.md") is a shared rule and stays in
+     AGENTS.md.
+   - **Facts that live only in a Claude skill** (a project `run` skill holding the only copy of the
+     build and test commands). Another agent cannot read the skill, so a vague pointer leaves it
+     stranded. Read the skill and include the commands in your proposal. Copy what is needed to set
+     up, check, test and launch, plus the skill's rules a person needs to use them safely (for
+     example "always use the wrapper"); leave rarely used detail (extra flags) in the skill, with one
+     line in AGENTS.md saying so. If the owner declines the copy, AGENTS.md says in one line that the
+     commands are in the Claude `run` skill, so the gap is visible. Tell the owner, in your summary
+     and not in the file, that the commands now live in two places and can drift.
+   - **Prose about loading** ("this file stays short, it loads into every session") describes
+     CLAUDE.md, so reword it for its new home.
+   - **No duplicates.** CLAUDE.md holds only what is Claude-only; do not restate a shared rule in it.
+   - **The stub's shape** is `templates/CLAUDE.md.tmpl`. Hook sentences join its hooks bullet; if the
+     project's own hook sentence has facts the template's lacks, fold them in. Drop the sentence for
+     any hook switched off in `workflow.json` (`components.merge_gate_hook` / `cwd_guard_hook`), so
+     the stub never claims a gate the project does not have.
+   - **`AGENTS.md.tmpl` is a shape, not content.** The project's own bullets win, and the template's
+     `{{...}}` placeholders (toolchain, kind bullets) are not rendered into a migration.
+   - **The design-ideas pointer.** If the report also lists `CLAUDE.md [line]`, it is part of the
+     migration, so the pointer goes into the new AGENTS.md. Add just that sentence, not the whole
+     `agents-extra.md` bullet, which also names game docs that may not exist yet. If the report does
+     not list it, the project already has the line and it migrates with its bullet.
+   - **Line endings.** A new file takes the line endings of the file it replaces
+     (`git ls-files --eol CLAUDE.md`); an edited file keeps its own. On Windows an LF index with a
+     CRLF working tree is normal.
+   - **Personal preferences.** This is a project file, so leave the owner's wording in place. But if
+     a line reads as a personal working preference (the owner's global preferences live in
+     `~/.claude/CLAUDE.md`), name it in your summary and ask rather than moving it out.
+
+   Then tell the user which bullets were split, reworded or stayed in CLAUDE.md, and why. If they
+   decline, leave CLAUDE.md alone: the repo keeps working as before. If the report lists only
+   `CLAUDE.md [line]` (AGENTS.md exists but CLAUDE.md lacks the import), add the `@AGENTS.md` line at
+   the top of CLAUDE.md and change nothing else.
 4. **Old project hooks, before writing `workflow.json`.** The plugin's hooks switch on as
    soon as `.claude/workflow.json` exists, so any older project copy of the merge gate or
    cwd guard would then run *twice* (two merge checks, two denials). If the report lists
