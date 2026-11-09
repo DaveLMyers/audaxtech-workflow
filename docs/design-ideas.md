@@ -12,6 +12,45 @@ work gets its own issue; the entry here stays, with its status updated.
 
 ---
 
+## 2026-11-09 - Beyond Claude Code
+
+**Status:** raw (tracked by #75, which stays open as the pointer)
+
+**Thought:** "One thing I would like to do is consider making this not a Claude plugin, but a
+plugin in general for multiple platforms, including Claude." And, on timing: "How mature does
+this workflow have to be before I consider making it more general? I think maybe for now it's
+okay to just have it as a design idea."
+
+**Context (from Claude, not part of the idea):**
+- **Others do this.** Superpowers (obra/superpowers) lists install paths for Claude Code, Codex,
+  Cursor, Gemini CLI, GitHub Copilot CLI, OpenCode and others; Spec Kit has "integrations" for
+  switching between coding agents. Neither was read in depth, so how they split shared content
+  from per-platform glue is not known.
+- **What probably ports and what does not** (a reading of this repo, not checked against other
+  platforms' formats). The process itself, meaning the flow, the human gates, the pr-check
+  checklist, the templates and the helper scripts, is prose and scripts. The hooks (merge gate,
+  wrong-repo guard) depend on Claude Code's hook system, so the guarantees could weaken where
+  there is no equivalent. The plugin manifest, the skill and agent file formats, how pr-check
+  starts its reviewer agents and `.claude/workflow.json` are Claude-specific plumbing.
+- **A shared convention.** Seven of the eight example repos looked at on 2026-11-06 (Rust, Node,
+  VS Code, Home Assistant, Superpowers, Spec Kit and others) have an `AGENTS.md`. This repo has
+  only a `CLAUDE.md`. What they put in theirs was not checked.
+- **When to revisit (Claude's view, the owner has not decided).** Generalising too early tends to
+  produce an abstraction layer nobody needed. The signs it is time: the Claude Code version is
+  stable (the `unverified` issues closed, the core flow run on all three operating systems);
+  the Claude-specific plumbing is separable from the process; a second platform has been used
+  enough to know what would have to move; someone other than the owner wants it elsewhere.
+
+**Candidates, none started** (file a separate issue for any the owner picks):
+1. Add an `AGENTS.md` that points at the process docs, without moving anything.
+2. Read how Superpowers and Spec Kit separate shared content from per-platform glue.
+3. List every Claude-specific dependency in this repo, so the size of the job is known.
+
+**Open decisions:** which platforms matter; whether hooks are required or best-effort off
+Claude Code; one repo or a shared core plus a thin plugin per platform.
+
+---
+
 ## 2026-10-16 - Enterprise-style standards across projects
 
 **Status:** exploring (tracked by #29, which stays open as the pointer)
