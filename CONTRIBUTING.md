@@ -122,7 +122,8 @@ another project reading it). Both need the same things.
   command output. Link to the code or CI instead.
 - **Lead with the answer.** A README starts with what this is, how to use it and what to rely
   on; a PR description starts with what changed and why. Detail follows only if a reader needs it.
-- **Say what is not verified,** plainly, in a short list.
+- **Track what is not verified as issues,** not as a list in a doc: one issue per item, labeled
+  `unverified`, closed when it has been run.
 - **Length follows need.** If a section only restates the code or another doc, link to it.
 
 ## Releasing
@@ -132,7 +133,7 @@ only when it changes, however many commits land on `main` (CI checks it is valid
 Merging without a bump ships nothing.
 
 - Release in its own small PR: bump the version (patch for fixes, minor for new skills or
-  behaviour; stay on 0.x while the README lists unverified flows), merge on green CI, then tag
+  behaviour; stay on 0.x while issues labeled `unverified` are open), merge on green CI, then tag
   the merge commit `vX.Y.Z`.
 - Then update installed copies: `claude plugin marketplace update audaxtech`, then
   `claude plugin update audaxtech-workflow@audaxtech`, and restart open sessions.
@@ -230,7 +231,6 @@ polish as its own issue.
   SKILL.md and the templates it renders must agree. A change to one updates
   the others in the same PR, and a leftover template placeholder in rendered
   output is a bug.
-- **Say what is verified.** The README's "What is verified, and what is not"
-  section is part of the product; move an item out of "not yet verified" only
-  when it has been run.
+- **Say what is verified.** Something written but never run gets an issue labeled
+  `unverified`; close it only when it has actually been run, and say what was run.
 

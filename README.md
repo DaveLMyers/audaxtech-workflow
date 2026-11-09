@@ -53,20 +53,9 @@ A project opts in to the hooks by having `.claude/workflow.json`, which bootstra
 
 Personal defaults (GitHub owner, merge method, board columns, CI matrix, components) live in `~/.claude/workflow-profile.json`; see [`skills/project-bootstrap/references/PROFILE.md`](skills/project-bootstrap/references/PROFILE.md).
 
-## What is verified, and what is not
-
-Extracted from two real Godot projects, then tested piece by piece. CI runs all five test suites in `tests/` on Linux and Windows for every PR, and on macOS when asked for (it was green on all three when last run together); it is the source of truth for what passes, and each suite's header says what it covers. Locally the suites are run on Windows with Git Bash.
-
-**Not yet verified:**
-- the skills' prose steps run end to end: upgrade mode's append step, the lighter docs-only path, writing the line-ending files into a brand-new project, and the recent `work-issue` guidance (CI after a PR opens, visual tuning loops, stray design ideas);
-- `create-board.sh` against a live new board (its view step has only run against a fake `gh`);
-- the cwd guard triggered live (unit-tested only: a stale `cd` cannot be reproduced in the harness);
-- the macOS Godot download path (the URL and bundle layout come from a working setup but have not been fetched by the generated script);
-- the Godot stack module rendered through a fresh bootstrap run;
-- the interactive flows on Linux and macOS (the suites pass there; the flows have only been used on Windows with Git Bash);
-- there is no Unity (or other engine) stack yet.
-
 ## Tests
+
+CI runs all five suites on Linux and Windows for every PR, and on macOS when asked for. Each suite's header says what it covers.
 
 ```
 bash tests/run-hook-tests.sh
