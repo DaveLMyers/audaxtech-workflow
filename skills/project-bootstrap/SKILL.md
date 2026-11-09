@@ -213,7 +213,11 @@ repo up to date, or when a session in such a repo finds the convention missing.
    build and test commands): another agent cannot read the skill, so a vague pointer leaves it
    stranded. Read the skill, say so, and offer to copy those commands into AGENTS.md, showing the
    text; if the owner declines, AGENTS.md says in one line that they are in the Claude `run` skill, so
-   the gap is visible. **(b) No duplicates:** CLAUDE.md holds only what is Claude-only; do not
+   the gap is visible. Copy what is needed to set up, check, test and launch, plus the skill's rules a
+   person needs to use them safely (for example "always use the wrapper"); leave rarely used detail
+   (extra flags) in the skill and say so in one line. Tell the owner the commands now live in two
+   places, so they can drift. A Claude mechanism may stay in AGENTS.md only as a labeled pointer
+   ("in Claude Code, the X skill", "the Claude `run` skill"), never as the only source of a fact. **(b) No duplicates:** CLAUDE.md holds only what is Claude-only; do not
    restate a shared rule in it. **(c) The stub's shape** is `templates/CLAUDE.md.tmpl`; hook sentences
    join its hooks bullet. **(d) `AGENTS.md.tmpl` is a shape, not content:** the project's own
    bullets win, and the template's `{{...}}` placeholders (toolchain, kind bullets) are not rendered
@@ -252,7 +256,8 @@ repo up to date, or when a session in such a repo finds the convention missing.
    user asks; the step 1 confirmation rule still applies if they do. An *existing* board
    only needs its block in `workflow.json`.
 7. **Hand-off.** Check `git status` first: if the tree already has unrelated edits, a new branch
-   would carry them along, so say so and use a worktree or ask the owner what to do with them.
+   would carry them along, so say so and use a worktree cut from the base branch (not from the dirty one) or ask the owner what to do
+   with them. Keep the migration as its own commit, so it can be reviewed or dropped alone.
    Do not commit or push without asking; propose a branch such as
    `chore/bootstrap-upgrade`. Once approved, commit with a Conventional Commit, push and
    open the PR (`gh pr create`) from the repo's PR template. The template says to link
