@@ -300,7 +300,8 @@ def check(repo, kind_arg):
         missing.append({
             "path": "AGENTS.md", "type": "migration",
             "what": "move the session guide from CLAUDE.md into AGENTS.md and leave CLAUDE.md as a stub that imports it "
-                    "(keep every existing line; Claude-specific lines stay in CLAUDE.md)",
+                    "(nothing is dropped; a bullet that mixes a shared rule with a Claude-only pointer is split, "
+                    "the pointer stays in CLAUDE.md)",
             "template": "AGENTS.md.tmpl",
         })
     else:

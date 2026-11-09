@@ -197,11 +197,18 @@ repo up to date, or when a session in such a repo finds the convention missing.
    renormalize is needed; check with `git ls-files --eol`). Show the diff first.
    **Session guide migration.** If the report lists `AGENTS.md [migration]` (the rules live in
    CLAUDE.md and there is no AGENTS.md), offer it as its own item and show the result before
-   writing anything. AGENTS.md gets every line another coding agent could act on (the rules, the
-   test commands, the pointers), moved verbatim and in order; CLAUDE.md keeps `@AGENTS.md` plus any
-   line that only makes sense in Claude Code (hooks, skills, `.claude/` or `~/.claude` paths).
-   Reword a line only to take a Claude Code mechanism out of a shared rule (say what the check is,
-   then name the skill as the Claude way to run it). Tell the user which lines stayed in CLAUDE.md
+   writing anything. Go through CLAUDE.md bullet by bullet. AGENTS.md gets what another coding
+   agent could act on (the rules, the facts such as which binary to run or where not to search, the
+   test commands, the pointers), in the original order; CLAUDE.md keeps `@AGENTS.md` plus what only
+   makes sense in Claude Code (hooks, skills, `.claude/` or `~/.claude` paths). Nothing is dropped.
+   Real projects have **mixed bullets**: a shared rule with a Claude-only pointer attached (a fact
+   plus "see the `run` skill", a rule plus "the plugin's cwd-guard hook backstops it"). Split the
+   bullet: the rule or fact goes to AGENTS.md, the pointer to CLAUDE.md. And a line that only
+   *names* Claude Code ("several Claude Code sessions") while the rule itself is generic stays
+   shared, reworded ("several agent sessions"); it is a judgment call, not a path test. Where a
+   shared rule needs the skill by name, say what the check is, then name the skill as the Claude way
+   to run it. Reword prose that describes how CLAUDE.md loads ("this file stays short, it loads into
+   every session") for its new home. Tell the user which bullets were split or stayed in CLAUDE.md,
    and why. If they decline, leave CLAUDE.md alone: the repo keeps working as before. If the report
    lists only `CLAUDE.md [line]` (AGENTS.md exists but CLAUDE.md lacks the import), add the
    `@AGENTS.md` line at the top of CLAUDE.md and change nothing else.
@@ -236,7 +243,9 @@ repo up to date, or when a session in such a repo finds the convention missing.
 6. **GitHub-side pieces** (new board, labels) are not part of an upgrade unless the
    user asks; the step 1 confirmation rule still applies if they do. An *existing* board
    only needs its block in `workflow.json`.
-7. **Hand-off.** Do not commit or push without asking; propose a branch such as
+7. **Hand-off.** Check `git status` first: if the tree already has unrelated edits, a new branch
+   would carry them along, so say so and use a worktree or ask the owner what to do with them.
+   Do not commit or push without asking; propose a branch such as
    `chore/bootstrap-upgrade`. Once approved, commit with a Conventional Commit, push and
    open the PR (`gh pr create`) from the repo's PR template. The template says to link
    the issue (`Closes #N`); an upgrade usually has none. Either file a small issue for it
