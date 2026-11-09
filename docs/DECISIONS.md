@@ -175,3 +175,15 @@ need renegotiating when collaborators join.
 **Why:** The plugin stays the single owner of the process, so an improvement made while working on one project reaches all of them on the next release; project rules stay with the project's other rules. The cost: a project check is prose that `pr-check` follows, not something a script enforces, and a project cannot override or skip a standard step (use `components.*` for that).
 
 **Related:** #33
+
+---
+
+## 2026-11-09 - AGENTS.md is the session guide; CLAUDE.md is a stub that imports it
+
+**Context:** Issue #77, a first step from the multi-platform idea (#75). The plugin generated only a `CLAUDE.md`, which other coding agents do not read, and seven of the eight example repos looked at on 2026-11-06 have an `AGENTS.md`.
+
+**Decision:** Bootstrap generates `AGENTS.md` (the rules any coding agent can follow) and a `CLAUDE.md` that is `@AGENTS.md` plus the few lines that only make sense in Claude Code (hooks, skills, `.claude/` paths). A line goes in `AGENTS.md` if another tool's agent would act on it correctly. Upgrade mode reports a repo whose rules still live only in `CLAUDE.md` as an `AGENTS.md [migration]` item and proposes the move; it never does it unasked, and a declined migration leaves the repo as it was. `docs_only.py` treats `AGENTS.md` like `CLAUDE.md` (never docs-only). Scope is the guide file only: this is still a Claude Code plugin, and the hooks, skills, `workflow.json` and the merge gate are unchanged.
+
+**Why:** It is the cheapest step toward other platforms and needs no abstraction layer. Where a shared rule named a Claude mechanism (for example the `pr-check` skill), the shared file says what the check is and names the skill as the Claude way to run it. The cost: on other platforms the hooks' guarantees are advice, not gates; that stays an open decision in #75.
+
+**Related:** #77, #75, docs/design-ideas.md

@@ -1,6 +1,6 @@
 ---
 name: project-bootstrap
-description: Scaffolds the full working process for a new project - CONTRIBUTING.md, DECISIONS.md log, issue/PR templates, CI skeleton, a short CLAUDE.md, a `.claude/workflow.json` marker that switches on the audaxtech-workflow plugin's hooks and pr-check for the project, plus a GitHub Projects v2 board with standard columns, Priority field and labels. Games are the default and best-supported kind; other kinds work too. Use when the user is starting a new project/repo or wants the standard workflow set up in an existing one, or an older repo brought up to date with what the templates now provide (upgrade mode). Triggers on "new project," "start a project," "bootstrap," "scaffold the repo/process," "set up the workflow/board for this project."
+description: Scaffolds the full working process for a new project - CONTRIBUTING.md, DECISIONS.md log, issue/PR templates, CI skeleton, a short AGENTS.md session guide (plus a CLAUDE.md stub that imports it for Claude Code), a `.claude/workflow.json` marker that switches on the audaxtech-workflow plugin's hooks and pr-check for the project, plus a GitHub Projects v2 board with standard columns, Priority field and labels. Games are the default and best-supported kind; other kinds work too. Use when the user is starting a new project/repo or wants the standard workflow set up in an existing one, or an older repo brought up to date with what the templates now provide (upgrade mode). Triggers on "new project," "start a project," "bootstrap," "scaffold the repo/process," "set up the workflow/board for this project."
 ---
 
 # Project bootstrap
@@ -30,7 +30,7 @@ user's account). A failure in the board step must leave a working repo.
 - `gh auth status` must show the `project` scope (else `gh auth refresh -s
   project`, which the user must do). `python` must be on PATH (the plugin's hooks use it). The **audaxtech-workflow plugin must be installed and enabled** - it supplies the merge-gate and cwd-guard hooks, the `pr-check` skill and the reviewer agents that this project will rely on; if it isn't, say so and stop rather than generating a project that references missing pieces.
 - Is it already a git repo? Does a GitHub remote exist? Existing files that
-  collide (CONTRIBUTING.md, CLAUDE.md, .github/, .claude/workflow.json) must be
+  collide (CONTRIBUTING.md, AGENTS.md, CLAUDE.md, .github/, .claude/workflow.json) must be
   **merged, not overwritten** - read them first and show the user a diff of
   what you'd change.
 
@@ -42,7 +42,7 @@ Ask only what you can't infer from the directory:
   Testing section, and the `run` step of `pr-check`).
 - **Areas** for `area:` labels (the major systems; 3-8 is right).
 - Solo or team (affects only wording in the review/approval bullets).
-- Sibling repos the user reads across (just informs CLAUDE.md wording).
+- Sibling repos the user reads across (just informs AGENTS.md wording).
 
 Then present ONE confirmation listing every outward-facing action, and wait
 for a clear yes before any of them:
@@ -63,13 +63,14 @@ From `templates/`:
 |---|---|
 | `CONTRIBUTING.md.tmpl` | `CONTRIBUTING.md` (board ids stay as placeholders until step 4) |
 | `docs/DECISIONS.md` | `docs/DECISIONS.md` (set `{{DATE}}`) |
-| `CLAUDE.md.tmpl` | `CLAUDE.md` |
+| `AGENTS.md.tmpl` | `AGENTS.md` (the shared session guide: rules any coding agent can follow) |
+| `CLAUDE.md.tmpl` | `CLAUDE.md` (a stub: `@AGENTS.md` plus the few lines that only make sense in Claude Code) |
 | `github/PULL_REQUEST_TEMPLATE.md` | `.github/PULL_REQUEST_TEMPLATE.md` |
 | `github/ISSUE_TEMPLATE/*.yml` (feature, bug, chore, research) | `.github/ISSUE_TEMPLATE/` (expand `{{AREA_OPTIONS}}` into lines like `        - area:ui`) |
 | `gitattributes.txt`, `editorconfig.txt` | `.gitattributes`, `.editorconfig` (LF in the repo and the working tree on every OS, CRLF only for Windows scripts; no indentation rules, since those depend on the language). In an existing repo, never overwrite: if the file is there, show what the template adds and append only the missing rules. **Check what the index holds before warning about line endings:** `git ls-files --eol` prints `i/<index> w/<working tree>` per file. If the index is `i/lf`, nothing needs renormalizing. On Windows with `core.autocrlf=true` a working tree of `w/crlf` over `i/lf` is normal (Git converts on checkout and commit), so do **not** run `git add --renormalize` and do not call it a problem. Only if the index itself is `i/crlf` or `i/mixed`, warn: adding `.gitattributes` makes Git show every such file as modified until `git add --renormalize .` is run, which must be its own commit, never mixed into other work. Tell the user that `.editorconfig`'s `end_of_line = lf` is what makes their editor save LF, so new edits stay LF even where Git hands out CRLF. |
 | `github/workflows/ci.yml.tmpl` | `.github/workflows/ci.yml`. Fill the two matrix placeholders from `ci.matrix` as one-line JSON arrays of `{"name":...,"os":...}`: `{{CI_MATRIX_ALWAYS}}` gets every entry whose `os` does not start with `macos`, `{{CI_MATRIX_WITH_MACOS}}` gets all of them. macOS therefore runs only on request (`gh workflow run CI -f macos=true`, or the Run workflow button), never on a PR or push; this is the standard for every project, not a choice to offer. Only if `ci.macos_on_every_pr` is `true` in the profile (the owner's explicit override) do you put every entry in both placeholders, so macOS runs on every PR. Games default to Linux, macOS Intel, macOS Apple Silicon and Windows in `ci.matrix`. Tell the user macOS is on request and why (the runner queues 10+ minutes, and private repos spend the free monthly allowance ten times faster on macOS), and that `ci.matrix` trims what CI can run. |
 | `stacks/<stack>/*` | The chosen stack's `stack.json` lists what it fills: `conventions.md` -> `{{ENGINE_CONVENTIONS}}`, `testing.md` -> `{{TESTING_SECTION}}`, `ci-steps.yml` -> `{{CI_STEPS}}` (the setup script it calls comes from the `toolchain-run` skill), `gitignore.txt` appended to `.gitignore`. Entries under `optional` marked `default: true` (cross-platform habits, translatable text) are included unless the matching component is switched off - say they are on and that they can opt out; append them to the game-specific CONTRIBUTING section. Mention the stack's `status` honestly. |
-| `kinds/<kind>/*` | Kind-specific additions. For `game` (when `components.game_docs` is on): `VISION.md`, `DESIGN.md`, `GAMEPLAY.md`, `HOW_TO_PLAY.md` and `design-ideas.md` into `docs/` (set `{{DATE}}`), `claude-extra.md` into `{{KIND_BULLETS}}` of CLAUDE.md, and `contributing-extra.md` appended to CONTRIBUTING.md via `{{EXTRA_SECTIONS}}` (fill `{{ENGINE_CONVENTIONS}}` with the engine's real conventions from the interview, or a short placeholder note if none are known yet; in an existing repo that already has its own conventions, drop that subsection instead - see Upgrade mode). No `kinds/<kind>/` folder = nothing extra. |
+| `kinds/<kind>/*` | Kind-specific additions. For `game` (when `components.game_docs` is on): `VISION.md`, `DESIGN.md`, `GAMEPLAY.md`, `HOW_TO_PLAY.md` and `design-ideas.md` into `docs/` (set `{{DATE}}`), `agents-extra.md` into `{{KIND_BULLETS}}` of AGENTS.md, and `contributing-extra.md` appended to CONTRIBUTING.md via `{{EXTRA_SECTIONS}}` (fill `{{ENGINE_CONVENTIONS}}` with the engine's real conventions from the interview, or a short placeholder note if none are known yet; in an existing repo that already has its own conventions, drop that subsection instead - see Upgrade mode). No `kinds/<kind>/` folder = nothing extra. |
 | *(generated, no template)* | `.claude/workflow.json` - the resolved config (see `<skill>/references/PROFILE.md`; how to build it from `profile.example.json` is under "The workflow.json file" below). **Its presence is what turns the plugin's hooks on for this project**, and `components.*` switches them individually. Hooks and `pr-check` are NOT copied into the repo; the plugin owns them. |
 
 Interview answers fill `{{PROJECT_NAME}}`, `{{ONE_LINE_DESCRIPTION}}`, `{{OWNER}}` and `{{AREA_LABELS}}` (the `area:` labels as a comma-separated list), plus `{{AREA_OPTIONS}}` in the issue templates. Board ids (`{{BOARD_*}}`, `{{PROJECT_ID}}`, `{{STATUS_FIELD_ID}}`, `{{PRIORITY_FIELD_ID}}`, `{{OPT_*}}`) come from `create-board.sh` in step 4.
@@ -77,11 +78,11 @@ Interview answers fill `{{PROJECT_NAME}}`, `{{ONE_LINE_DESCRIPTION}}`, `{{OWNER}
 Fill the stack-specific placeholders with real content, not stubs:
 `{{TESTING_SECTION}}` (how to run tests), `{{CI_STEPS}}` (checkout is already
 there; add toolchain setup, build, test), `{{RUN_STEP}}` (how to boot/run it),
-`{{TOOLCHAIN_BULLET}}` (CLAUDE.md pointer to how to run things, if non-obvious),
+`{{TOOLCHAIN_BULLET}}` (AGENTS.md pointer to how to run things, if non-obvious),
 `{{EXTRA_SECTIONS}}` (stack conventions, deployment - or delete the marker).
 If the stack needs a pinned downloadable tool (an engine, compiler, CLI), use the `toolchain-run` skill to generate the setup scripts and the project's `run` skill, and reference it from `{{RUN_STEP}}`/`{{TOOLCHAIN_BULLET}}`.
 Delete unused `{{...}}` lines rather than leaving them. Also write a minimal
-README.md (it starts with what the project is, how to use it and what to rely on), a `.gitignore` and the two files above if absent. Keep the root CLAUDE.md short.
+README.md (it starts with what the project is, how to use it and what to rely on), a `.gitignore` and the two files above if absent. Keep the root AGENTS.md short, and put in it only rules another coding agent could act on; a line that names a Claude Code mechanism (hooks, skills, `.claude/`) goes in the CLAUDE.md stub.
 
 ### 3. Verify the local files before touching GitHub
 - `.claude/workflow.json` parses as JSON and its `components` keys match `<skill>/references/PROFILE.md`.
@@ -171,7 +172,10 @@ repo up to date, or when a session in such a repo finds the convention missing.
    - what is missing: whole files (including `.gitattributes` and `.editorconfig`), the
      "Game-specific process" section of CONTRIBUTING.md or, when the repo has that section,
      which of its `###` subsections (Game docs, Play-testing, ...) are missing, and the
-     CLAUDE.md line that points stray design ideas at `docs/design-ideas.md`;
+     AGENTS.md (or, before a migration, CLAUDE.md) line that points stray design ideas at
+     `docs/design-ideas.md`; and the session guide itself: a missing AGENTS.md or CLAUDE.md stub, a
+     CLAUDE.md that does not import AGENTS.md, or (`AGENTS.md [migration]`) a repo whose rules still
+     live only in CLAUDE.md;
    - what it deliberately does not offer: the template's "Engine conventions" subsection is
      only a `{{ENGINE_CONVENTIONS}}` placeholder, so a repo with its own conventions,
      cross-platform or translatable-text headings is not offered it;
@@ -184,20 +188,30 @@ repo up to date, or when a session in such a repo finds the convention missing.
 3. **Add only what was approved, and only what is missing.** A missing file is
    rendered from its template (step 2 of the order above). A missing section, subsection
    or line is *appended* to the existing file (`kinds/game/contributing-extra.md` to
-   CONTRIBUTING.md, `kinds/game/claude-extra.md` to CLAUDE.md); never rewrite or
-   reorder existing content. Append a missing subsection on its own, not the whole
+   CONTRIBUTING.md, `kinds/game/agents-extra.md` to AGENTS.md); never rewrite or
+   reorder existing content, with one exception, the session guide migration below. Append a missing subsection on its own, not the whole
    template. **Drop the "Engine conventions" subsection** (just the `{{ENGINE_CONVENTIONS}}`
    placeholder) whenever the repo already has its own conventions: never append a
    literal `{{...}}`. Match the file's line endings (see the line-endings note in the
    table above: LF in the index with CRLF in the working tree on Windows is normal, and no
    renormalize is needed; check with `git ls-files --eol`). Show the diff first.
+   **Session guide migration.** If the report lists `AGENTS.md [migration]` (the rules live in
+   CLAUDE.md and there is no AGENTS.md), offer it as its own item and show the result before
+   writing anything. AGENTS.md gets every line another coding agent could act on (the rules, the
+   test commands, the pointers), moved verbatim and in order; CLAUDE.md keeps `@AGENTS.md` plus any
+   line that only makes sense in Claude Code (hooks, skills, `.claude/` or `~/.claude` paths).
+   Reword a line only to take a Claude Code mechanism out of a shared rule (say what the check is,
+   then name the skill as the Claude way to run it). Tell the user which lines stayed in CLAUDE.md
+   and why. If they decline, leave CLAUDE.md alone: the repo keeps working as before. If the report
+   lists only `CLAUDE.md [line]` (AGENTS.md exists but CLAUDE.md lacks the import), add the
+   `@AGENTS.md` line at the top of CLAUDE.md and change nothing else.
 4. **Old project hooks, before writing `workflow.json`.** The plugin's hooks switch on as
    soon as `.claude/workflow.json` exists, so any older project copy of the merge gate or
    cwd guard would then run *twice* (two merge checks, two denials). If the report lists
    any: show them and **offer to remove** the `hooks` entries from `.claude/settings.json`
    (only those entries; leave unrelated hooks and settings) and the scripts under
    `tools/hooks/` (delete only after a yes; `git rm`, so history keeps them). Then list the
-   doc lines from the report that point at the old scripts (CONTRIBUTING.md, CLAUDE.md,
+   doc lines from the report that point at the old scripts (CONTRIBUTING.md, AGENTS.md, CLAUDE.md,
    README, `docs/`) and offer to reword each to say the audaxtech-workflow plugin provides
    the hook. If the user keeps an old copy, say plainly that it will run twice, and
    consider `components.merge_gate_hook` / `cwd_guard_hook: false` instead.

@@ -46,6 +46,8 @@ not_docs skills/work-issue/SKILL.md
 not_docs docs/guide.md skills/pr-check/SKILL.md
 not_docs CLAUDE.md
 not_docs docs/CLAUDE.md
+not_docs AGENTS.md
+not_docs docs/AGENTS.md
 not_docs agents/test-saboteur.md
 not_docs skills/project-bootstrap/templates/CONTRIBUTING.md.tmpl
 not_docs docs/templates/page.md

@@ -13,7 +13,13 @@ switched off in workflow.json (`components.<name>: false`) are not reported.
 
 Limits: file names are compared the way the OS compares them, so on Windows and
 macOS (case-insensitive by default) docs/DESIGN-IDEAS.md counts as docs/design-ideas.md.
-The CLAUDE.md pointer is recognised by the file name appearing anywhere in CLAUDE.md.
+The design-ideas pointer is recognised by the file name appearing anywhere in AGENTS.md or CLAUDE.md.
+
+Session guide: AGENTS.md holds the shared rules and CLAUDE.md is a thin stub that imports it (`@AGENTS.md`),
+because Claude Code reads CLAUDE.md, not AGENTS.md. Four cases are reported: neither file (both are missing);
+AGENTS.md only (the CLAUDE.md stub is missing); both, with no `@AGENTS.md` import in CLAUDE.md (that line is
+missing); and CLAUDE.md only, the repos that predate AGENTS.md (a `migration`: move the guide into AGENTS.md and
+leave the stub). The migration is only reported, never done: the skill proposes it and the owner approves.
 Files are checked for presence only, not content: a .gitattributes that exists but has no
 eol rule is reported as present, so the skill should still read it before saying all is well.
 
@@ -76,7 +82,9 @@ OLD_HOOKS = {
 }
 HOOK_DIR = "tools/hooks"
 PLUGIN_SKILLS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir)
-DOC_FILES = ["CONTRIBUTING.md", "CLAUDE.md", "README.md"]
+DOC_FILES = ["CONTRIBUTING.md", "AGENTS.md", "CLAUDE.md", "README.md"]
+# The stub's import line, at the start of a line (Claude Code's `@path` import syntax).
+AGENTS_IMPORT_RE = re.compile(r"^[ \t]*@AGENTS\.md\b", re.MULTILINE)
 SCRIPT_RE = re.compile(r"[\w.-]+\.(?:sh|py|ps1|js)")
 
 
@@ -272,7 +280,32 @@ def check(repo, kind_arg):
 
     # Pieces every kind gets.
     want("CONTRIBUTING.md", "the workflow document", "CONTRIBUTING.md.tmpl")
-    want("CLAUDE.md", "the short session guide", "CLAUDE.md.tmpl")
+    # The session guide: AGENTS.md holds it, CLAUDE.md is a stub that imports it.
+    agents_file, claude_file = os.path.join(repo, "AGENTS.md"), os.path.join(repo, "CLAUDE.md")
+    has_agents, has_claude = os.path.isfile(agents_file), os.path.isfile(claude_file)
+    if has_agents and has_claude:
+        present.append({"path": "AGENTS.md"})
+        if AGENTS_IMPORT_RE.search(outside_fences(read(claude_file) or "")):
+            present.append({"path": "CLAUDE.md"})
+        else:
+            missing.append({
+                "path": "CLAUDE.md", "type": "line",
+                "what": "the '@AGENTS.md' import, so Claude Code reads the shared session guide",
+                "template": "CLAUDE.md.tmpl",
+            })
+    elif has_agents:
+        present.append({"path": "AGENTS.md"})
+        want("CLAUDE.md", "the Claude Code stub that imports AGENTS.md", "CLAUDE.md.tmpl")
+    elif has_claude:
+        missing.append({
+            "path": "AGENTS.md", "type": "migration",
+            "what": "move the session guide from CLAUDE.md into AGENTS.md and leave CLAUDE.md as a stub that imports it "
+                    "(keep every existing line; Claude-specific lines stay in CLAUDE.md)",
+            "template": "AGENTS.md.tmpl",
+        })
+    else:
+        want("AGENTS.md", "the short session guide", "AGENTS.md.tmpl")
+        want("CLAUDE.md", "the Claude Code stub that imports AGENTS.md", "CLAUDE.md.tmpl")
     if on("decisions_log"):
         want("docs/DECISIONS.md", "the decisions log", "docs/DECISIONS.md")
     if on("issue_and_pr_templates"):
@@ -327,12 +360,13 @@ def check(repo, kind_arg):
                         "what": "the '%s' subsection of the Game-specific process section" % sub,
                         "template": "kinds/game/contributing-extra.md",
                     })
-        claude = read(os.path.join(repo, "CLAUDE.md"))
-        if claude is not None and IDEAS_POINTER not in claude:
+        guides = [t for t in (read(agents_file), read(claude_file)) if t is not None]
+        if guides and not any(IDEAS_POINTER in t for t in guides):
+            # In a migration the line belongs in the new AGENTS.md; until then CLAUDE.md is where it is missing.
             missing.append({
-                "path": "CLAUDE.md", "type": "line",
+                "path": "AGENTS.md" if has_agents else "CLAUDE.md", "type": "line",
                 "what": "the pointer saying stray design ideas go in docs/design-ideas.md",
-                "template": "kinds/game/claude-extra.md",
+                "template": "kinds/game/agents-extra.md",
             })
 
     return {

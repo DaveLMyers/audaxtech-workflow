@@ -39,7 +39,7 @@ cache on the pin file).
    and `.ps1`, `.claude/skills/run/SKILL.md` (kept if one exists - merge by
    hand for a second toolchain), and appends the bin dir to `.gitignore`.
 5. **Test it for real** before calling it done (see below), then add the
-   extras: a CLAUDE.md line pointing at the `run` skill ("don't search the
+   extras: an AGENTS.md line pointing at the `run` skill ("don't search the
    filesystem for X"), and the CI wiring.
 6. Don't commit/push without asking; follow the project's own workflow.
 
