@@ -208,8 +208,16 @@ repo up to date, or when a session in such a repo finds the convention missing.
    shared, reworded ("several agent sessions"); it is a judgment call, not a path test. Where a
    shared rule needs the skill by name, say what the check is, then name the skill as the Claude way
    to run it. Reword prose that describes how CLAUDE.md loads ("this file stays short, it loads into
-   every session") for its new home. Tell the user which bullets were split or stayed in CLAUDE.md,
-   and why. If they decline, leave CLAUDE.md alone: the repo keeps working as before. If the report
+   every session") for its new home. Four more rules a real run needed:
+   **(a) Facts that live only in a Claude skill** (a project `run` skill holding the only copy of the
+   build and test commands): another agent cannot read the skill, so a vague pointer leaves it
+   stranded. Read the skill, say so, and offer to copy those commands into AGENTS.md, showing the
+   text; if the owner declines, AGENTS.md says in one line that they are in the Claude `run` skill, so
+   the gap is visible. **(b) No duplicates:** CLAUDE.md holds only what is Claude-only; do not
+   restate a shared rule in it. **(c) The stub's shape** is `templates/CLAUDE.md.tmpl`; hook sentences
+   join its hooks bullet. **(d) `AGENTS.md.tmpl` is a shape, not content:** the project's own
+   bullets win, and the template's `{{...}}` placeholders (toolchain, kind bullets) are not rendered
+   into a migration. Tell the user which bullets were split or stayed in CLAUDE.md, and why. If they decline, leave CLAUDE.md alone: the repo keeps working as before. If the report
    lists only `CLAUDE.md [line]` (AGENTS.md exists but CLAUDE.md lacks the import), add the
    `@AGENTS.md` line at the top of CLAUDE.md and change nothing else.
 4. **Old project hooks, before writing `workflow.json`.** The plugin's hooks switch on as
