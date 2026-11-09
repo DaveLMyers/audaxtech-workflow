@@ -198,7 +198,8 @@ repo up to date, or when a session in such a repo finds the convention missing.
    **Session guide migration.** If the report lists `AGENTS.md [migration]` (the rules live in
    CLAUDE.md and there is no AGENTS.md), offer it as its own item. Show the whole proposal once, in
    your reply, before writing anything (the new AGENTS.md, the new CLAUDE.md, and any commands copied
-   from a skill), and ask once. Go through CLAUDE.md bullet by bullet:
+   from a skill), and ask once: the copy of skill commands and any personal-preference line are questions inside that
+   one ask. Go through CLAUDE.md bullet by bullet:
    - **What goes where.** AGENTS.md gets what another coding agent could act on (rules, facts such as
      which binary to run or where not to search, test commands, pointers), in the original order.
      CLAUDE.md gets `@AGENTS.md` plus what only makes sense in Claude Code (hooks, how to use a Claude
@@ -211,7 +212,8 @@ repo up to date, or when a session in such a repo finds the convention missing.
      judgment call, not a path test.
    - **A skill named in a shared rule.** Say what the check is, then name the skill as the Claude way
      to run it ("in Claude Code, the `pr-check` skill"). A Claude mechanism may sit in AGENTS.md only
-     as such a labeled pointer, never as the only source of a fact. A fallback that works without the
+     as such a labeled pointer (a `.claude/` path may appear there only inside one), never as the only
+     source of a fact, except the one-line note that flags a declined copy. A fallback that works without the
      plugin ("follow the checklist by hand from CONTRIBUTING.md") is a shared rule and stays in
      AGENTS.md.
    - **Facts that live only in a Claude skill** (a project `run` skill holding the only copy of the
@@ -279,7 +281,8 @@ repo up to date, or when a session in such a repo finds the convention missing.
    only needs its block in `workflow.json`.
 7. **Hand-off.** Check `git status` first: if the tree already has unrelated edits, a new branch
    would carry them along, so say so and use a worktree cut from the base branch (not from the dirty one) or ask the owner what to do
-   with them. Keep the migration as its own commit, so it can be reviewed or dropped alone.
+   with them. Keep the migration as its own commit, so it can be reviewed or dropped alone; it may share
+   the PR with the other approved upgrade items.
    Do not commit or push without asking; propose a branch such as
    `chore/bootstrap-upgrade`. Once approved, commit with a Conventional Commit, push and
    open the PR (`gh pr create`) from the repo's PR template. The template says to link
