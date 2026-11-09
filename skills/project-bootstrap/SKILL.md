@@ -219,9 +219,18 @@ repo up to date, or when a session in such a repo finds the convention missing.
    places, so they can drift. A Claude mechanism may stay in AGENTS.md only as a labeled pointer
    ("in Claude Code, the X skill", "the Claude `run` skill"), never as the only source of a fact. **(b) No duplicates:** CLAUDE.md holds only what is Claude-only; do not
    restate a shared rule in it. **(c) The stub's shape** is `templates/CLAUDE.md.tmpl`; hook sentences
-   join its hooks bullet. **(d) `AGENTS.md.tmpl` is a shape, not content:** the project's own
+   join its hooks bullet, and drop the sentence for any hook switched off in `workflow.json`
+   (`components.merge_gate_hook` / `cwd_guard_hook`), so the stub never claims a gate the project does
+   not have. **(d) `AGENTS.md.tmpl` is a shape, not content:** the project's own
    bullets win, and the template's `{{...}}` placeholders (toolchain, kind bullets) are not rendered
-   into a migration. Tell the user which bullets were split or stayed in CLAUDE.md, and why. If they decline, leave CLAUDE.md alone: the repo keeps working as before. If the report
+   into a migration. **(e) The design-ideas pointer:** if the report also lists `CLAUDE.md [line]`, it is
+   part of the migration, so the pointer goes into the new AGENTS.md. Add just that sentence, not
+   the whole `agents-extra.md` bullet, which also names game docs that may not exist yet. **(f) New
+   files take the line endings of the file they replace** (`git ls-files --eol CLAUDE.md`), so on
+   Windows an LF index with a CRLF working tree is normal. **(g) Personal preferences:** this is a
+   project file, so leave the owner's wording in place, but if a line reads as a personal working
+   preference (the owner's global preferences live in `~/.claude/CLAUDE.md`), name it in your
+   summary and ask rather than moving it out. Tell the user which bullets were split or stayed in CLAUDE.md, and why. If they decline, leave CLAUDE.md alone: the repo keeps working as before. If the report
    lists only `CLAUDE.md [line]` (AGENTS.md exists but CLAUDE.md lacks the import), add the
    `@AGENTS.md` line at the top of CLAUDE.md and change nothing else.
 4. **Old project hooks, before writing `workflow.json`.** The plugin's hooks switch on as
