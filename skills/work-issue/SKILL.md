@@ -36,7 +36,7 @@ current folder, which is not the project when you are in the skill's folder).
 2. **Is it already in progress?** `gh issue view N --json state,assignees,labels,title,body`
    and `gh pr list --search "#N in:body" --state open`. An open PR or an existing
    branch for it means ask whether to continue that work.
-3. **Read:** the issue, `.claude/workflow.json`, the whole CONTRIBUTING.md, CLAUDE.md,
+3. **Read:** the issue, `.claude/workflow.json`, the whole CONTRIBUTING.md, AGENTS.md (and CLAUDE.md, if it has more than the import),
    the project's `run` skill, and any doc the issue links. Check `docs/DECISIONS.md`
    for anything that already settles the question.
 4. **Say your plan in about five lines:** what you will build, the acceptance
@@ -76,7 +76,7 @@ current folder, which is not the project when you are in the skill's folder).
     issue to build the idea only when the user says to, or once it is `adopted`.
   - **It does not exist:** say so and offer to add it (`project-bootstrap`'s upgrade mode
     adds the missing game docs). Do not quietly file an issue instead.
-  This matches the line in the game CLAUDE.md template: stray design thoughts go in
+  This matches the line in the game AGENTS.md template: stray design thoughts go in
   `docs/design-ideas.md`, not into the design docs and not straight into the backlog.
 - Read your own diff before moving on.
 

@@ -124,7 +124,7 @@ Run `python <this skill's base directory>/scripts/docs_only.py --base <base bran
 says "docs-only" only when every changed file is prose people read and nothing runs or
 steers Claude: Markdown or text under `docs/` (and images there), and the root README,
 CONTRIBUTING, CHANGELOG, LICENSE and similar files. A skill's `SKILL.md`, an agent
-definition, a template, `CLAUDE.md`, an issue or PR template, anything under `skills/`,
+definition, a template, `AGENTS.md`, `CLAUDE.md`, an issue or PR template, anything under `skills/`,
 `agents/`, `hooks/`, `.claude/` or `.github/`, scripts, tests and config are **not**
 docs-only even though they are often Markdown: they change what runs or what Claude does.
 If the script says "not docs-only", or you are unsure, do the full checklist above.

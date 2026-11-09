@@ -40,7 +40,8 @@ full_game() {
   local d="$1"; mkdir -p "$d"
   put "$d/CONTRIBUTING.md" "# C
 $GSP"
-  put "$d/CLAUDE.md" "- stray ideas go in docs/design-ideas.md"
+  put "$d/AGENTS.md" "- stray ideas go in docs/design-ideas.md"
+  put "$d/CLAUDE.md" "@AGENTS.md"
   for f in DECISIONS VISION DESIGN GAMEPLAY HOW_TO_PLAY design-ideas; do put "$d/docs/$f.md"; done
   put "$d/.github/PULL_REQUEST_TEMPLATE.md"
   for f in feature bug_report chore research; do put "$d/.github/ISSUE_TEMPLATE/$f.yml"; done
@@ -64,13 +65,14 @@ OLD="$W/old"; full_game "$OLD"
 safe_rm "$OLD/docs/VISION.md" "$OLD/docs/design-ideas.md"
 put "$OLD/CONTRIBUTING.md" "# C
 ## Branching"
-put "$OLD/CLAUDE.md" "- be careful"
+safe_rm "$OLD/AGENTS.md"; put "$OLD/CLAUDE.md" "- be careful"
 got="$(missing "$OLD")"
-exp="CLAUDE.md|line
+exp="AGENTS.md|migration
+CLAUDE.md|line
 CONTRIBUTING.md|section
 docs/VISION.md|file
 docs/design-ideas.md|file"
-[ "$got" = "$exp" ]; chk "reports exactly the missing doc files, the CONTRIBUTING section and the CLAUDE.md pointer" $? "$got"
+[ "$got" = "$exp" ]; chk "reports exactly the missing doc files, the CONTRIBUTING section, the AGENTS.md migration and the CLAUDE.md pointer" $? "$got"
 before="$(snapshot "$OLD")"; python "$CHECK" "$OLD" >/dev/null; python "$CHECK" "$OLD" --json >/dev/null
 [ "$before" = "$(snapshot "$OLD")" ]; chk "never modifies the repo" $? "snapshot changed"
 python "$CHECK" "$OLD" | grep -q "Already present"; chk "text report says what is left untouched" $? ""
@@ -94,19 +96,19 @@ python -c '
 import json,sys; p=sys.argv[1]+"/.claude/workflow.json"
 json.dump({"version":1,"kind":"tool","components":{"game_docs":False}}, open(p,"w"))' "$TOOL"
 safe_rm -r "$TOOL/docs/VISION.md" "$TOOL/docs/DESIGN.md" "$TOOL/docs/GAMEPLAY.md" "$TOOL/docs/HOW_TO_PLAY.md" "$TOOL/docs/design-ideas.md"
-put "$TOOL/CONTRIBUTING.md" "# C"; put "$TOOL/CLAUDE.md" "- x"
+put "$TOOL/CONTRIBUTING.md" "# C"; put "$TOOL/CLAUDE.md" "@AGENTS.md"
 [ -z "$(missing "$TOOL")" ]; chk "a tool repo is not asked for game docs, the game section or the ideas pointer" $? "$(missing "$TOOL")"
 TK="$W/tk"; full_game "$TK"
 python -c '
 import json,sys; p=sys.argv[1]+"/.claude/workflow.json"
 json.dump({"version":1,"kind":"tool"}, open(p,"w"))' "$TK"
-safe_rm -r "$TK/docs"; put "$TK/docs/DECISIONS.md"; put "$TK/CONTRIBUTING.md" "# C"; put "$TK/CLAUDE.md" "- x"
+safe_rm -r "$TK/docs"; put "$TK/docs/DECISIONS.md"; put "$TK/CONTRIBUTING.md" "# C"; put "$TK/CLAUDE.md" "@AGENTS.md"
 [ -z "$(missing "$TK")" ]; chk "kind alone keeps game docs out of a tool repo (no component override needed)" $? "$(missing "$TK")"
 G="$W/gd"; full_game "$G"
 python -c '
 import json,sys; p=sys.argv[1]+"/.claude/workflow.json"
 json.dump({"version":1,"kind":"game","components":{"game_docs":False,"ci":False,"decisions_log":False,"issue_and_pr_templates":False}}, open(p,"w"))' "$G"
-safe_rm -r "$G/docs" "$G/.github"; put "$G/CONTRIBUTING.md" "# C"; put "$G/CLAUDE.md" "- x"
+safe_rm -r "$G/docs" "$G/.github"; put "$G/CONTRIBUTING.md" "# C"; put "$G/CLAUDE.md" "@AGENTS.md"
 [ -z "$(missing "$G")" ]; chk "components switched off in workflow.json are not reported" $? "$(missing "$G")"
 
 echo "== exact lists (what a wrong required-file list or kind order would change)"
@@ -119,6 +121,7 @@ ALL_FILES=".claude/workflow.json
 .github/ISSUE_TEMPLATE/research.yml
 .github/PULL_REQUEST_TEMPLATE.md
 .github/workflows/ci.yml
+AGENTS.md
 CLAUDE.md
 CONTRIBUTING.md
 docs/DECISIONS.md"
@@ -131,10 +134,10 @@ files_only() { missing "$@" | sed 's/|file$//' | sort; }
 sorted() { printf '%s
 ' "$1" | sort; }
 [ "$(files_only "$EMPTY")" = "$(sorted "$ALL_FILES
-$GAME_FILES")" ]; chk "an empty game repo is missing exactly the 17 files, with no section or line" $? "$(missing "$EMPTY")"
+$GAME_FILES")" ]; chk "an empty game repo is missing exactly the 18 files, with no section or line" $? "$(missing "$EMPTY")"
 [ -z "$(missing "$EMPTY" | grep -v '|file$')" ]; chk "...and nothing of type section or line while their files are absent" $? ""
 for k in web library other tool; do
-  [ "$(files_only "$EMPTY" --kind $k)" = "$(sorted "$ALL_FILES")" ]; chk "kind $k: exactly the 12 standard files, no game docs" $? "$(missing "$EMPTY" --kind $k | tr '
+  [ "$(files_only "$EMPTY" --kind $k)" = "$(sorted "$ALL_FILES")" ]; chk "kind $k: exactly the 13 standard files, no game docs" $? "$(missing "$EMPTY" --kind $k | tr '
 ' ' ')"
 done
 M="$W/m"; full_game "$M"; safe_rm "$M/docs/VISION.md"
@@ -186,8 +189,116 @@ python "$CHECK" "$BAD" | grep -q "cannot be read"; chk "a malformed workflow.jso
 python "$CHECK" "$BAD" --json | python -c 'import sys,json;r=json.load(sys.stdin);sys.exit(0 if any(m["path"]==".claude/workflow.json" for m in r["missing"]) is False else 1)'
 chk "...and the broken marker is not double-reported as missing" $? ""
 python "$CHECK" "$W/does-not-exist" >/dev/null 2>&1; [ $? -eq 2 ]; chk "a missing directory is a usage error (exit 2)" $? ""
-IDEAS="$W/ideas"; full_game "$IDEAS"; put "$IDEAS/CLAUDE.md" "- stray ideas go in docs/design-ideas.md, in the owner's words"
-[ -z "$(missing "$IDEAS")" ]; chk "the CLAUDE.md pointer is recognised wherever the line sits" $? "$(missing "$IDEAS")"
+IDEAS="$W/ideas"; full_game "$IDEAS"; put "$IDEAS/AGENTS.md" "- stray ideas go in docs/design-ideas.md, in the owner's words"
+[ -z "$(missing "$IDEAS")" ]; chk "the AGENTS.md pointer is recognised wherever the line sits" $? "$(missing "$IDEAS")"
+
+echo "== the session guide: AGENTS.md plus a CLAUDE.md stub that imports it (issue #77)"
+SG="$W/sg"
+sg_repo() { safe_rm -r "$SG"; full_game "$SG"; }
+sg_repo; safe_rm "$SG/CLAUDE.md"
+[ "$(missing "$SG")" = "CLAUDE.md|file" ]; chk "AGENTS.md only: the CLAUDE.md stub is missing" $? "$(missing "$SG")"
+sg_repo; put "$SG/CLAUDE.md" "- be careful"
+[ "$(missing "$SG")" = "CLAUDE.md|line" ]; chk "both files, no import in CLAUDE.md: the import line is missing" $? "$(missing "$SG")"
+sg_repo; put "$SG/CLAUDE.md" "see @AGENTS.md for the rules"
+[ "$(missing "$SG")" = "CLAUDE.md|line" ]; chk "'@AGENTS.md' in the middle of a line is not an import" $? "$(missing "$SG")"
+sg_repo; put "$SG/CLAUDE.md" '```
+@AGENTS.md
+```'
+[ "$(missing "$SG")" = "CLAUDE.md|line" ]; chk "an import inside a code fence is not an import" $? "$(missing "$SG")"
+sg_repo; put "$SG/CLAUDE.md" "  @AGENTS.md
+## Claude Code"
+[ -z "$(missing "$SG")" ]; chk "an indented import with Claude-only lines after it is fine" $? "$(missing "$SG")"
+sg_repo; safe_rm "$SG/AGENTS.md"; put "$SG/CLAUDE.md" "@AGENTS.md"
+[ "$(missing "$SG")" = "AGENTS.md|migration
+CLAUDE.md|line" ]; chk "a dangling import with no AGENTS.md is still a migration, not a stub" $? "$(missing "$SG")"
+python "$CHECK" "$SG" --json | python -c 'import sys,json;r=json.load(sys.stdin);m=[x for x in r["missing"] if x["type"]=="migration"];sys.exit(0 if len(m)==1 and m[0]["template"]=="AGENTS.md.tmpl" and "CLAUDE.md" in m[0]["what"] else 1)'
+chk "the migration item names the template and says what moves" $? ""
+sg_repo; put "$SG/AGENTS.md" "- x"
+[ "$(missing "$SG")" = "AGENTS.md|line" ]; chk "no design-ideas pointer in either file: reported against AGENTS.md" $? "$(missing "$SG")"
+sg_repo; put "$SG/AGENTS.md" "- x"; put "$SG/CLAUDE.md" "@AGENTS.md
+- stray ideas go in docs/design-ideas.md"
+[ -z "$(missing "$SG")" ]; chk "the design-ideas pointer is also recognised in the CLAUDE.md stub" $? "$(missing "$SG")"
+sg_repo; safe_rm "$SG/AGENTS.md"; put "$SG/CLAUDE.md" "- be careful"
+before="$(snapshot "$SG")"; python "$CHECK" "$SG" >/dev/null; [ "$before" = "$(snapshot "$SG")" ]
+chk "reporting a migration changes nothing on disk" $? "snapshot changed"
+python "$CHECK" "$SG" | grep -q "AGENTS.md \[migration\]"; chk "the text report lists the migration" $? ""
+sg_repo; python "$CHECK" "$SG" --json | python -c 'import sys,json;r=json.load(sys.stdin);sys.exit(0 if "AGENTS.md" in r["present"] and "CLAUDE.md" in r["present"] else 1)'
+chk "a repo with the stub and the guide lists both as present" $? ""
+
+echo "== session guide: what the first tests let through (blind check of PR #78)"
+# sgasrt <repo> <label> <python expression over r, the --json report> [extra args]
+sgasrt() {
+  python "$CHECK" "$1" --json ${4:-} | python -c 'import sys,json;r=json.load(sys.stdin);sys.exit(0 if ('"$3"') else 1)'
+  chk "$2" $? ""
+}
+# the import can sit on any line, not only the first
+sg_repo; put "$SG/CLAUDE.md" "# Claude Code
+
+@AGENTS.md"
+[ -z "$(missing "$SG")" ]; chk "the import below a title line counts" $? "$(missing "$SG")"
+sg_repo; put "$SG/CLAUDE.md" "- @AGENTS.md"
+[ "$(missing "$SG")" = "CLAUDE.md|line" ]; chk "a list marker before the import means it is not an import" $? "$(missing "$SG")"
+sg_repo; put "$SG/CLAUDE.md" "@AGENTS.md.bak"
+[ "$(missing "$SG")" = "CLAUDE.md|line" ]; chk "'@AGENTS.md.bak' is not an import" $? "$(missing "$SG")"
+sg_repo; put "$SG/CLAUDE.md" "@AGENTS.mdx"
+[ "$(missing "$SG")" = "CLAUDE.md|line" ]; chk "'@AGENTS.mdx' is not an import" $? "$(missing "$SG")"
+sg_repo; printf '```md\n@AGENTS.md\n```\n' > "$SG/CLAUDE.md"
+[ "$(missing "$SG")" = "CLAUDE.md|line" ]; chk "an import inside a fence with a language tag is not an import" $? "$(missing "$SG")"
+sg_repo; printf '```\nexample\n```\n@AGENTS.md\n' > "$SG/CLAUDE.md"
+[ -z "$(missing "$SG")" ]; chk "an import after a closed fence counts" $? "$(missing "$SG")"
+sg_repo; printf '@AGENTS.md\r\n## Claude Code\r\n' > "$SG/CLAUDE.md"
+[ -z "$(missing "$SG")" ]; chk "an import in a CRLF file counts" $? "$(missing "$SG")"
+sg_repo; printf '\357\273\277@AGENTS.md\n' > "$SG/CLAUDE.md"
+[ -z "$(missing "$SG")" ]; chk "an import after a UTF-8 BOM counts" $? "$(missing "$SG")"
+sg_repo; printf '\t@AGENTS.md\n' > "$SG/CLAUDE.md"
+[ -z "$(missing "$SG")" ]; chk "a tab before the import is fine" $? "$(missing "$SG")"
+sg_repo; printf '@AGENTS.md' > "$SG/CLAUDE.md"
+[ -z "$(missing "$SG")" ]; chk "an import on the last line with no trailing newline counts" $? "$(missing "$SG")"
+# the design-ideas pointer: its exact text, the file it is reported against, and game only
+sg_repo; put "$SG/AGENTS.md" "- stray ideas: see design-ideas.md (in docs/)"
+[ -z "$(missing "$SG")" ]; chk "the pointer is the file name alone, not only 'docs/design-ideas.md'" $? "$(missing "$SG")"
+sg_repo; safe_rm "$SG/CLAUDE.md"; put "$SG/AGENTS.md" "- x"
+[ "$(missing "$SG")" = "AGENTS.md|line
+CLAUDE.md|file" ]; chk "AGENTS.md only, no pointer: the pointer is reported against AGENTS.md next to the stub" $? "$(missing "$SG")"
+sg_repo; put "$SG/AGENTS.md" "- x"; put "$SG/CLAUDE.md" "- be careful"
+[ "$(missing "$SG")" = "AGENTS.md|line
+CLAUDE.md|line" ]; chk "no import and no pointer: two distinct line items" $? "$(missing "$SG")"
+sg_repo; safe_rm "$SG/AGENTS.md"; : > "$SG/CLAUDE.md"
+[ "$(missing "$SG")" = "AGENTS.md|migration
+CLAUDE.md|line" ]; chk "an empty CLAUDE.md with no AGENTS.md is still a migration" $? "$(missing "$SG")"
+sg_kind() { python -c '
+import json,sys; json.dump({"version":1,"kind":sys.argv[2]}, open(sys.argv[1]+"/.claude/workflow.json","w"))' "$SG" "$1"; }
+for k in tool web library other; do
+  sg_repo; sg_kind "$k"; put "$SG/AGENTS.md" "- x"
+  [ -z "$(missing "$SG")" ]; chk "kind $k never asks for the design-ideas pointer" $? "$(missing "$SG")"
+done
+sg_repo; python -c '
+import json,sys; json.dump({"version":1}, open(sys.argv[1]+"/.claude/workflow.json","w"))' "$SG"; put "$SG/AGENTS.md" "- x"
+[ -z "$(missing "$SG" --kind web)" ]; chk "--kind web (marker without a kind) never asks for the pointer" $? "$(missing "$SG" --kind web)"
+# the other kinds get the same case split as games
+sg_repo; sg_kind tool; safe_rm "$SG/AGENTS.md"; put "$SG/CLAUDE.md" "- be careful"
+[ "$(missing "$SG")" = "AGENTS.md|migration" ]; chk "tool kind: CLAUDE.md only is a migration, and nothing else" $? "$(missing "$SG")"
+sg_repo; sg_kind tool; put "$SG/CLAUDE.md" "- x"
+[ "$(missing "$SG")" = "CLAUDE.md|line" ]; chk "tool kind: both files without an import is a line item" $? "$(missing "$SG")"
+sg_repo; sg_kind tool; safe_rm "$SG/CLAUDE.md"
+[ "$(missing "$SG")" = "CLAUDE.md|file" ]; chk "tool kind: AGENTS.md only is a missing stub" $? "$(missing "$SG")"
+# what is listed as present, and which template each item names
+sg_repo; put "$SG/CLAUDE.md" "- be careful"
+sgasrt "$SG" "no import: AGENTS.md is present, CLAUDE.md is not" '"AGENTS.md" in r["present"] and "CLAUDE.md" not in r["present"]'
+sg_repo; safe_rm "$SG/CLAUDE.md"
+sgasrt "$SG" "AGENTS.md only: AGENTS.md is present" '"AGENTS.md" in r["present"] and "CLAUDE.md" not in r["present"]'
+sgasrt "$SG" "AGENTS.md only: the stub item names CLAUDE.md.tmpl" '[m["template"] for m in r["missing"] if m["path"]=="CLAUDE.md"]==["CLAUDE.md.tmpl"]'
+sg_repo; put "$SG/CLAUDE.md" "- be careful"
+sgasrt "$SG" "no import: the line item names CLAUDE.md.tmpl" '[m["template"] for m in r["missing"] if m["path"]=="CLAUDE.md" and m["type"]=="line"]==["CLAUDE.md.tmpl"]'
+sgasrt "$EMPTY" "empty repo: the two guide files name their own templates" '{m["path"]:m["template"] for m in r["missing"] if m["path"] in ("AGENTS.md","CLAUDE.md")}=={"AGENTS.md":"AGENTS.md.tmpl","CLAUDE.md":"CLAUDE.md.tmpl"}'
+sg_repo; safe_rm "$SG/AGENTS.md"; put "$SG/CLAUDE.md" "- be careful"
+sgasrt "$SG" "the migration text says nothing is dropped" '[m for m in r["missing"] if m["type"]=="migration" and "nothing is dropped" in m["what"]]!=[]'
+for guide in AGENTS CLAUDE; do  # not "f": full_game, called by sg_repo, uses it as its own loop variable
+  sg_repo; python -c '
+import json,sys; json.dump({"version":1,"kind":"tool"}, open(sys.argv[1]+"/.claude/workflow.json","w"))' "$SG"
+  put "$SG/$guide.md" "see block-merge-if-ci-red.sh"; put "$SG/tools/hooks/block-merge-if-ci-red.sh"
+  sgasrt "$SG" "an old-hook doc reference in $guide.md is found" '("'"$guide"'.md",1) in [(d["file"],d["line"]) for d in r["old_hooks"]["doc_references"]]'
+done
 
 echo "== the line-ending templates (issue #6)"
 TPL="$HERE/../skills/project-bootstrap/templates"
@@ -324,11 +435,12 @@ SL="$W/sl"; full_game "$SL"; put "$SL/.claude/settings.local.json" '{"hooks":{"P
 asrt "$SL" "settings.local.json is scanned, and the entry names file, event, matcher and hook" '[(s["file"],s["event"],s["matcher"],s["hook"]) for s in r["old_hooks"]["settings"]]==[(".claude/settings.local.json","PreToolUse","Bash","cwd-guard")]'
 DS="$W/ds"; full_game "$DS"; put "$DS/tools/hooks/block-merge-if-ci-red.sh"
 put "$DS/CLAUDE.md" "see block-merge-if-ci-red.sh"
+put "$DS/AGENTS.md" "the gate is block-merge-if-ci-red.sh"
 put "$DS/README.md" "# R
 the gate is block-merge-if-ci-red.sh"
 put "$DS/docs/setup/hooks.md" "block-merge-if-ci-red.sh lives here"
 put "$DS/docs/notes.txt" "block-merge-if-ci-red.sh"
-asrt "$DS" "doc lines are found in CLAUDE.md, README.md and nested docs/*.md, and not in other file types" 'sorted((d["file"],d["line"]) for d in r["old_hooks"]["doc_references"])==[("CLAUDE.md",1),("README.md",2),("docs/setup/hooks.md",1)]'
+asrt "$DS" "doc lines are found in AGENTS.md, CLAUDE.md, README.md and nested docs/*.md, and not in other file types" 'sorted((d["file"],d["line"]) for d in r["old_hooks"]["doc_references"])==[("AGENTS.md",1),("CLAUDE.md",1),("README.md",2),("docs/setup/hooks.md",1)]'
 NS="$W/ns"; full_game "$NS"
 put "$NS/.claude/settings.json" '{"hooks":{"PreToolUse":[{"hooks":[{"type":"command","command":"bash tools/hooks/common.sh && bash .claude/hooks/block-merge-if-ci-red.sh"}]}]}}'
 put "$NS/CONTRIBUTING.md" "# C

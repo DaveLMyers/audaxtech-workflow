@@ -56,7 +56,7 @@ omit its files **and** the doc sentences/links that mention it.
 | `cross_platform_habits` | The stack's cross-platform rules (paths, filename case, OS calls, float tolerance...) in CONTRIBUTING.md. Default `true` for games. |
 | `translatable_text` | The stack's translatable-text rules (`tr()`, no sentence-building, a baseline test). Default `true` for games. |
 | `decisions_log` | `docs/DECISIONS.md` and the "add an entry in the same PR" rule |
-| `pr_check_skill` | No files: the plugin owns `pr-check`. When on, CONTRIBUTING.md/CLAUDE.md require it as the standing pre-merge step. |
+| `pr_check_skill` | No files: the plugin owns `pr-check`. When on, CONTRIBUTING.md/AGENTS.md require it as the standing pre-merge step. |
 | `run_skill_and_toolchain` | via `toolchain-run`: pin file, setup scripts, `run` skill |
 | `ci` | `.github/workflows/ci.yml` |
 | `merge_gate_hook` | No files: the plugin's hook, active in this project because `workflow.json` exists. `false` switches it off here. Needs `ci`. |

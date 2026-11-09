@@ -15,7 +15,7 @@ reads as instructions or runs:
   - README, CONTRIBUTING, CHANGELOG, LICENSE, CODE_OF_CONDUCT, SECURITY and NOTICE files
     in the repository root.
 Everything else is NOT docs-only, even when it is Markdown: a skill's SKILL.md, agent and
-command definitions, templates (templates/, *.tmpl), CLAUDE.md (it steers every session),
+command definitions, templates (templates/, *.tmpl), AGENTS.md and CLAUDE.md (they steer every session),
 issue and PR templates, anything under skills/, agents/, hooks/, .claude/ or .github/,
 scripts, tests and config. Those change what runs or what Claude does, so they get the
 full PR description and the full review. An empty change is not docs-only.
@@ -43,7 +43,7 @@ def is_docs_path(path):
     name = low[-1]
     if any(x in MACHINERY for x in low[:-1]):
         return False
-    if name in ("skill.md", "claude.md") or name.endswith(".tmpl"):
+    if name in ("skill.md", "claude.md", "agents.md") or name.endswith(".tmpl"):
         return False
     if len(parts) == 1:
         stem = name.split(".")[0]
