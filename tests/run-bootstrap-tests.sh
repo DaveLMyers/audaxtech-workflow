@@ -225,6 +225,81 @@ python "$CHECK" "$SG" | grep -q "AGENTS.md \[migration\]"; chk "the text report 
 sg_repo; python "$CHECK" "$SG" --json | python -c 'import sys,json;r=json.load(sys.stdin);sys.exit(0 if "AGENTS.md" in r["present"] and "CLAUDE.md" in r["present"] else 1)'
 chk "a repo with the stub and the guide lists both as present" $? ""
 
+echo "== session guide: what the first tests let through (blind check of PR #78)"
+# sgasrt <repo> <label> <python expression over r, the --json report> [extra args]
+sgasrt() {
+  python "$CHECK" "$1" --json ${4:-} | python -c 'import sys,json;r=json.load(sys.stdin);sys.exit(0 if ('"$3"') else 1)'
+  chk "$2" $? ""
+}
+# the import can sit on any line, not only the first
+sg_repo; put "$SG/CLAUDE.md" "# Claude Code
+
+@AGENTS.md"
+[ -z "$(missing "$SG")" ]; chk "the import below a title line counts" $? "$(missing "$SG")"
+sg_repo; put "$SG/CLAUDE.md" "- @AGENTS.md"
+[ "$(missing "$SG")" = "CLAUDE.md|line" ]; chk "a list marker before the import means it is not an import" $? "$(missing "$SG")"
+sg_repo; put "$SG/CLAUDE.md" "@AGENTS.md.bak"
+[ "$(missing "$SG")" = "CLAUDE.md|line" ]; chk "'@AGENTS.md.bak' is not an import" $? "$(missing "$SG")"
+sg_repo; put "$SG/CLAUDE.md" "@AGENTS.mdx"
+[ "$(missing "$SG")" = "CLAUDE.md|line" ]; chk "'@AGENTS.mdx' is not an import" $? "$(missing "$SG")"
+sg_repo; printf '```md\n@AGENTS.md\n```\n' > "$SG/CLAUDE.md"
+[ "$(missing "$SG")" = "CLAUDE.md|line" ]; chk "an import inside a fence with a language tag is not an import" $? "$(missing "$SG")"
+sg_repo; printf '```\nexample\n```\n@AGENTS.md\n' > "$SG/CLAUDE.md"
+[ -z "$(missing "$SG")" ]; chk "an import after a closed fence counts" $? "$(missing "$SG")"
+sg_repo; printf '@AGENTS.md\r\n## Claude Code\r\n' > "$SG/CLAUDE.md"
+[ -z "$(missing "$SG")" ]; chk "an import in a CRLF file counts" $? "$(missing "$SG")"
+sg_repo; printf '\357\273\277@AGENTS.md\n' > "$SG/CLAUDE.md"
+[ -z "$(missing "$SG")" ]; chk "an import after a UTF-8 BOM counts" $? "$(missing "$SG")"
+sg_repo; printf '\t@AGENTS.md\n' > "$SG/CLAUDE.md"
+[ -z "$(missing "$SG")" ]; chk "a tab before the import is fine" $? "$(missing "$SG")"
+sg_repo; printf '@AGENTS.md' > "$SG/CLAUDE.md"
+[ -z "$(missing "$SG")" ]; chk "an import on the last line with no trailing newline counts" $? "$(missing "$SG")"
+# the design-ideas pointer: its exact text, the file it is reported against, and game only
+sg_repo; put "$SG/AGENTS.md" "- stray ideas: see design-ideas.md (in docs/)"
+[ -z "$(missing "$SG")" ]; chk "the pointer is the file name alone, not only 'docs/design-ideas.md'" $? "$(missing "$SG")"
+sg_repo; safe_rm "$SG/CLAUDE.md"; put "$SG/AGENTS.md" "- x"
+[ "$(missing "$SG")" = "AGENTS.md|line
+CLAUDE.md|file" ]; chk "AGENTS.md only, no pointer: the pointer is reported against AGENTS.md next to the stub" $? "$(missing "$SG")"
+sg_repo; put "$SG/AGENTS.md" "- x"; put "$SG/CLAUDE.md" "- be careful"
+[ "$(missing "$SG")" = "AGENTS.md|line
+CLAUDE.md|line" ]; chk "no import and no pointer: two distinct line items" $? "$(missing "$SG")"
+sg_repo; safe_rm "$SG/AGENTS.md"; : > "$SG/CLAUDE.md"
+[ "$(missing "$SG")" = "AGENTS.md|migration
+CLAUDE.md|line" ]; chk "an empty CLAUDE.md with no AGENTS.md is still a migration" $? "$(missing "$SG")"
+sg_kind() { python -c '
+import json,sys; json.dump({"version":1,"kind":sys.argv[2]}, open(sys.argv[1]+"/.claude/workflow.json","w"))' "$SG" "$1"; }
+for k in tool web library other; do
+  sg_repo; sg_kind "$k"; put "$SG/AGENTS.md" "- x"
+  [ -z "$(missing "$SG")" ]; chk "kind $k never asks for the design-ideas pointer" $? "$(missing "$SG")"
+done
+sg_repo; python -c '
+import json,sys; json.dump({"version":1}, open(sys.argv[1]+"/.claude/workflow.json","w"))' "$SG"; put "$SG/AGENTS.md" "- x"
+[ -z "$(missing "$SG" --kind web)" ]; chk "--kind web (marker without a kind) never asks for the pointer" $? "$(missing "$SG" --kind web)"
+# the other kinds get the same case split as games
+sg_repo; sg_kind tool; safe_rm "$SG/AGENTS.md"; put "$SG/CLAUDE.md" "- be careful"
+[ "$(missing "$SG")" = "AGENTS.md|migration" ]; chk "tool kind: CLAUDE.md only is a migration, and nothing else" $? "$(missing "$SG")"
+sg_repo; sg_kind tool; put "$SG/CLAUDE.md" "- x"
+[ "$(missing "$SG")" = "CLAUDE.md|line" ]; chk "tool kind: both files without an import is a line item" $? "$(missing "$SG")"
+sg_repo; sg_kind tool; safe_rm "$SG/CLAUDE.md"
+[ "$(missing "$SG")" = "CLAUDE.md|file" ]; chk "tool kind: AGENTS.md only is a missing stub" $? "$(missing "$SG")"
+# what is listed as present, and which template each item names
+sg_repo; put "$SG/CLAUDE.md" "- be careful"
+sgasrt "$SG" "no import: AGENTS.md is present, CLAUDE.md is not" '"AGENTS.md" in r["present"] and "CLAUDE.md" not in r["present"]'
+sg_repo; safe_rm "$SG/CLAUDE.md"
+sgasrt "$SG" "AGENTS.md only: AGENTS.md is present" '"AGENTS.md" in r["present"] and "CLAUDE.md" not in r["present"]'
+sgasrt "$SG" "AGENTS.md only: the stub item names CLAUDE.md.tmpl" '[m["template"] for m in r["missing"] if m["path"]=="CLAUDE.md"]==["CLAUDE.md.tmpl"]'
+sg_repo; put "$SG/CLAUDE.md" "- be careful"
+sgasrt "$SG" "no import: the line item names CLAUDE.md.tmpl" '[m["template"] for m in r["missing"] if m["path"]=="CLAUDE.md" and m["type"]=="line"]==["CLAUDE.md.tmpl"]'
+sgasrt "$EMPTY" "empty repo: the two guide files name their own templates" '{m["path"]:m["template"] for m in r["missing"] if m["path"] in ("AGENTS.md","CLAUDE.md")}=={"AGENTS.md":"AGENTS.md.tmpl","CLAUDE.md":"CLAUDE.md.tmpl"}'
+sg_repo; safe_rm "$SG/AGENTS.md"; put "$SG/CLAUDE.md" "- be careful"
+sgasrt "$SG" "the migration text says nothing is dropped" '[m for m in r["missing"] if m["type"]=="migration" and "nothing is dropped" in m["what"]]!=[]'
+for guide in AGENTS CLAUDE; do  # not "f": full_game, called by sg_repo, uses it as its own loop variable
+  sg_repo; python -c '
+import json,sys; json.dump({"version":1,"kind":"tool"}, open(sys.argv[1]+"/.claude/workflow.json","w"))' "$SG"
+  put "$SG/$guide.md" "see block-merge-if-ci-red.sh"; put "$SG/tools/hooks/block-merge-if-ci-red.sh"
+  sgasrt "$SG" "an old-hook doc reference in $guide.md is found" '("'"$guide"'.md",1) in [(d["file"],d["line"]) for d in r["old_hooks"]["doc_references"]]'
+done
+
 echo "== the line-ending templates (issue #6)"
 TPL="$HERE/../skills/project-bootstrap/templates"
 GA="$W/ga"; mkdir -p "$GA"; git -C "$GA" init -q; cp "$TPL/gitattributes.txt" "$GA/.gitattributes"

@@ -83,8 +83,10 @@ OLD_HOOKS = {
 HOOK_DIR = "tools/hooks"
 PLUGIN_SKILLS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir)
 DOC_FILES = ["CONTRIBUTING.md", "AGENTS.md", "CLAUDE.md", "README.md"]
-# The stub's import line, at the start of a line (Claude Code's `@path` import syntax).
-AGENTS_IMPORT_RE = re.compile(r"^[ \t]*@AGENTS\.md\b", re.MULTILINE)
+# The stub's import line: `@AGENTS.md` at the start of a line (Claude Code's `@path` import syntax), on any
+# line, not followed by more path characters (so `@AGENTS.md.bak` and `@AGENTS.mdx` do not count).
+# Case-sensitive, like the path itself on Linux.
+AGENTS_IMPORT_RE = re.compile(r"^[ \t]*@AGENTS\.md(?!\S)", re.MULTILINE)
 SCRIPT_RE = re.compile(r"[\w.-]+\.(?:sh|py|ps1|js)")
 
 
@@ -284,9 +286,9 @@ def check(repo, kind_arg):
     agents_file, claude_file = os.path.join(repo, "AGENTS.md"), os.path.join(repo, "CLAUDE.md")
     has_agents, has_claude = os.path.isfile(agents_file), os.path.isfile(claude_file)
     if has_agents and has_claude:
-        present.append({"path": "AGENTS.md"})
+        want("AGENTS.md", "the short session guide", "AGENTS.md.tmpl")  # both files exist: listed as present
         if AGENTS_IMPORT_RE.search(outside_fences(read(claude_file) or "")):
-            present.append({"path": "CLAUDE.md"})
+            want("CLAUDE.md", "the Claude Code stub that imports AGENTS.md", "CLAUDE.md.tmpl")
         else:
             missing.append({
                 "path": "CLAUDE.md", "type": "line",
@@ -294,7 +296,7 @@ def check(repo, kind_arg):
                 "template": "CLAUDE.md.tmpl",
             })
     elif has_agents:
-        present.append({"path": "AGENTS.md"})
+        want("AGENTS.md", "the short session guide", "AGENTS.md.tmpl")  # listed as present
         want("CLAUDE.md", "the Claude Code stub that imports AGENTS.md", "CLAUDE.md.tmpl")
     elif has_claude:
         missing.append({

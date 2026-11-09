@@ -48,6 +48,13 @@ not_docs CLAUDE.md
 not_docs docs/CLAUDE.md
 not_docs AGENTS.md
 not_docs docs/AGENTS.md
+not_docs agents.md
+not_docs docs/claude.md
+not_docs docs/Agents.md
+not_docs docs/sub/Claude.MD
+not_docs src/x/AGENTS.md
+is_docs docs/agents-notes.md
+is_docs docs/MY_AGENTS.md
 not_docs agents/test-saboteur.md
 not_docs skills/project-bootstrap/templates/CONTRIBUTING.md.tmpl
 not_docs docs/templates/page.md
