@@ -3,7 +3,8 @@
 # setup, until it is brought up to date or the hook is switched off for the project. It runs the
 # read-only upgrade check (skills/project-bootstrap/scripts/upgrade_check.py) and prints one line
 # when the check finds something. It never edits a file, and it never fails the session: every
-# problem (no marker, a check that crashes or hangs, output it cannot read) ends in a silent exit 0.
+# problem (no marker, a marker with no kind, a check that crashes or hangs, output it cannot read) ends in a
+# silent exit 0.
 #
 # "Behind" means the check reports at least one item: a missing piece, an old project copy of the
 # plugin's hooks, a project skill that shadows a plugin skill, or macOS CI on every PR. A release
@@ -13,6 +14,7 @@
 # The caller (session-start-nudge.sh) has already checked that the project opted in and has
 # not switched this hook off (components.setup_nudge_hook), via _project_enabled.py.
 import json
+import math
 import os
 import subprocess
 import sys
@@ -27,11 +29,16 @@ ASK = ("Ask for upgrade mode to see what is different (read-only until you appro
        "components.setup_nudge_hook to false in .claude/workflow.json to stop this notice.")
 
 
+DEFAULT_TIMEOUT = 10.0
+
+
 def timeout_seconds():
+    """AUDAXTECH_NUDGE_TIMEOUT in seconds; anything that is not a finite number above zero falls back to the default."""
     try:
-        return max(1.0, float(os.environ.get("AUDAXTECH_NUDGE_TIMEOUT", "10")))
+        t = float(os.environ.get("AUDAXTECH_NUDGE_TIMEOUT", ""))
     except ValueError:
-        return 10.0
+        return DEFAULT_TIMEOUT
+    return t if math.isfinite(t) and t > 0 else DEFAULT_TIMEOUT
 
 
 def items_of(report):
@@ -87,6 +94,10 @@ def main():
         return
     report = json.loads(proc.stdout.decode("utf-8", "replace"))
     if not isinstance(report, dict):
+        return
+    # A marker with no kind makes the check assume `game` and list game docs the project may not want:
+    # a guess is not worth a notice every session.
+    if str(report.get("kind_source", "")).startswith("assumed"):
         return
     labels = items_of(report)
     if labels:
