@@ -195,6 +195,113 @@ run_hook guard-repo-cwd.sh "$T" "$O" "ls";                           expect_warn
 marker '{"version":1,"components":{}}'
 run_hook guard-repo-cwd.sh "$T" "$O" "git commit -m x";              expect_deny  "fixing the file restores protection" "Blocked"
 
-safe_rm -r "$T" "$O" "$FAKEBIN" "$OUTER"
+echo "== session-start nudge: a project behind the plugin is told, every session, and nothing is changed"
+NUDGE=session-start-nudge.sh
+expect_nudge() { # label [substring the message must contain]
+  if echo "$OUT" | python -c '
+import sys, json
+d = json.loads(sys.stdin.read())
+assert d["hookSpecificOutput"]["hookEventName"] == "SessionStart"
+assert d["systemMessage"].startswith("audaxtech-workflow: in this project,"), d["systemMessage"]
+assert "upgrade mode" in d["systemMessage"] and "setup_nudge_hook" in d["systemMessage"]
+assert "unasked" in d["hookSpecificOutput"]["additionalContext"]
+assert sys.argv[1] in d["systemMessage"], d["systemMessage"]' "${2:-}" 2>/dev/null && [ "$RC" -eq 0 ]; then
+    PASS=$((PASS+1)); echo "ok    $1"
+  else FAIL=$((FAIL+1)); echo "FAIL  $1  (rc=$RC, expected one SessionStart JSON message${2:+ containing '$2'}, got: ${OUT:0:160})"; fi
+}
+expect_quiet() { # label: no output at all and a clean exit
+  if [ -z "$OUT" ] && [ "$RC" -eq 0 ]; then PASS=$((PASS+1)); echo "ok    $1"
+  else FAIL=$((FAIL+1)); echo "FAIL  $1  (rc=$RC, expected silence, got: ${OUT:0:160})"; fi
+}
+# A kind:tool project with every piece the upgrade check looks for, so the check reports nothing.
+P="$(mktemp -d)"; safe_rm_allow "$P"
+fresh() {
+  safe_rm -r "$P"; mkdir -p "$P/.claude" "$P/docs" "$P/.github/ISSUE_TEMPLATE" "$P/.github/workflows"
+  git -C "$P" init -q
+  for f in CONTRIBUTING.md AGENTS.md docs/DECISIONS.md .github/PULL_REQUEST_TEMPLATE.md .github/workflows/ci.yml .gitattributes .editorconfig; do echo x > "$P/$f"; done
+  echo "@AGENTS.md" > "$P/CLAUDE.md"
+  for f in feature bug_report chore research; do echo x > "$P/.github/ISSUE_TEMPLATE/$f.yml"; done
+  echo '{"version":1,"kind":"tool"}' > "$P/.claude/workflow.json"
+}
+snap() { (cd "$1" && find . -type f -not -path './.git/*' | sort | xargs cksum); }
+
+fresh;                                                          run_hook "$NUDGE" "$P" "$P" "-"; expect_quiet "a project that is up to date: silent"
+safe_rm "$P/.claude/workflow.json"; safe_rm "$P/.editorconfig"; run_hook "$NUDGE" "$P" "$P" "-"; expect_quiet "no marker: silent, even with pieces missing"
+fresh; safe_rm "$P/.editorconfig"
+run_hook "$NUDGE" "$P" "$P" "-";                                expect_nudge "one missing piece: nudged, naming it" "1 thing differs"
+echo "$OUT" | grep -q '.editorconfig \[file\]'; chk_rc=$?
+[ $chk_rc -eq 0 ] && { PASS=$((PASS+1)); echo "ok    and the message names the file and its type"; } || { FAIL=$((FAIL+1)); echo "FAIL  the message names the file and its type (${OUT:0:160})"; }
+FIRST="$OUT"; run_hook "$NUDGE" "$P" "$P" "-"
+[ "$OUT" = "$FIRST" ] && [ -n "$OUT" ] && { PASS=$((PASS+1)); echo "ok    the next session says the same thing again (it nags until fixed)"; } || { FAIL=$((FAIL+1)); echo "FAIL  the next session says the same thing again"; }
+echo x > "$P/.editorconfig"
+run_hook "$NUDGE" "$P" "$P" "-";                                expect_quiet "once the piece is added, silent"
+fresh; safe_rm "$P/CLAUDE.md"
+run_hook "$NUDGE" "$P" "$P" "-";                                expect_nudge "AGENTS.md without its CLAUDE.md stub is reported" "CLAUDE.md [file]"
+fresh; safe_rm "$P/AGENTS.md"; echo "- be careful" > "$P/CLAUDE.md"
+run_hook "$NUDGE" "$P" "$P" "-";                                expect_nudge "a CLAUDE.md-only repo is reported as a migration" "AGENTS.md [migration]"
+fresh; safe_rm "$P/.editorconfig" "$P/.gitattributes" "$P/docs/DECISIONS.md" "$P/CONTRIBUTING.md"
+run_hook "$NUDGE" "$P" "$P" "-";                                expect_nudge "four missing pieces: counted, three named, the rest counted" "4 things differ"
+echo "$OUT" | grep -q 'and 1 more'; [ $? -eq 0 ] && { PASS=$((PASS+1)); echo "ok    and the fourth is summarised as 'and 1 more'"; } || { FAIL=$((FAIL+1)); echo "FAIL  'and 1 more' (${OUT:0:200})"; }
+fresh; mkdir -p "$P/.claude"
+echo '{"hooks":{"PreToolUse":[{"matcher":"Bash","hooks":[{"type":"command","command":"bash tools/hooks/block-merge-if-ci-red.sh"}]}]}}' > "$P/.claude/settings.json"
+run_hook "$NUDGE" "$P" "$P" "-";                                expect_nudge "an old project copy of the merge gate is reported even when nothing is missing" "old merge-gate hook"
+fresh; mkdir -p "$P/.claude/skills/pr-check"; echo x > "$P/.claude/skills/pr-check/SKILL.md"
+run_hook "$NUDGE" "$P" "$P" "-";                                expect_nudge "a project skill shadowing pr-check is reported" "shadows the plugin's pr-check"
+fresh; printf 'on:\n  pull_request:\njobs:\n  t:\n    runs-on: macos-latest\n' > "$P/.github/workflows/ci.yml"
+run_hook "$NUDGE" "$P" "$P" "-";                                expect_nudge "macOS on every PR is reported" "macOS on every PR"
+fresh; safe_rm "$P/.editorconfig"; echo '{"version":1,"kind":"tool","components":{"setup_nudge_hook":false}}' > "$P/.claude/workflow.json"
+run_hook "$NUDGE" "$P" "$P" "-";                                expect_quiet "components.setup_nudge_hook false: silent even when behind"
+echo '{"version":1,"kind":"tool","components":{"merge_gate_hook":false,"cwd_guard_hook":false}}' > "$P/.claude/workflow.json"
+run_hook "$NUDGE" "$P" "$P" "-";                                expect_nudge "the other hooks switched off do not silence it" ".editorconfig"
+echo '{"version":1,"kind":"tool","components":{"ci":false,"decisions_log":false,"issue_and_pr_templates":false}}' > "$P/.claude/workflow.json"
+safe_rm -r "$P/.github" "$P/docs"
+run_hook "$NUDGE" "$P" "$P" "-";                                expect_nudge "components the project switched off are not reported (only the missing .editorconfig is)" "1 thing differs"
+echo '{ "components": ' > "$P/.claude/workflow.json"
+run_hook "$NUDGE" "$P" "$P" "-";                                expect_quiet "malformed marker: silent, exit 0 (the PreToolUse hooks report it)"
+fresh; safe_rm "$P/.editorconfig"
+run_hook "$NUDGE" - "$P" "-";                                   expect_quiet "CLAUDE_PROJECT_DIR unset: silent"
+mkdir -p "$P/sub/dir"
+run_hook "$NUDGE" "$P/sub/dir" "$P/sub/dir" "-";                expect_nudge "a session started in a subfolder checks the repo root" ".editorconfig"
+before="$(snap "$P")"; run_hook "$NUDGE" "$P" "$P" "-"; run_hook "$NUDGE" "$P" "$P" "-"
+[ "$(snap "$P")" = "$before" ] && [ -z "$(git -C "$P" status --porcelain --untracked-files=no)" ] && { PASS=$((PASS+1)); echo "ok    running the nudge changes no file"; } || { FAIL=$((FAIL+1)); echo "FAIL  running the nudge changes no file"; }
+
+# A copy of the hook next to a stand-in upgrade check: whatever it does, the session must not be disturbed.
+HC="$(mktemp -d)"; safe_rm_allow "$HC"; mkdir -p "$HC/hooks" "$HC/skills/project-bootstrap/scripts"
+cp "$H/session-start-nudge.sh" "$H/_setup_nudge.py" "$H/_project_enabled.py" "$HC/hooks/"
+H_SAVE="$H"; H="$HC/hooks"; STUB="$HC/skills/project-bootstrap/scripts/upgrade_check.py"
+fresh
+run_hook "$NUDGE" "$P" "$P" "-";                                expect_quiet "the upgrade check is not there: silent"
+printf 'import sys\nsys.exit(1)\n' > "$STUB"
+run_hook "$NUDGE" "$P" "$P" "-";                                expect_quiet "the upgrade check exits non-zero: silent"
+printf 'print("not json")\n' > "$STUB"
+run_hook "$NUDGE" "$P" "$P" "-";                                expect_quiet "the upgrade check prints something that is not JSON: silent"
+printf 'print("[1, 2]")\n' > "$STUB"
+run_hook "$NUDGE" "$P" "$P" "-";                                expect_quiet "the upgrade check prints JSON that is not an object: silent"
+printf 'print("{\\"missing\\": [5, null]}")\n' > "$STUB"
+run_hook "$NUDGE" "$P" "$P" "-";                                expect_quiet "items of an unexpected shape: silent, no crash"
+printf 'print("{\\"missing\\": []}")\n' > "$STUB"
+run_hook "$NUDGE" "$P" "$P" "-";                                expect_quiet "a report with nothing in it: silent"
+printf 'import json\nprint(json.dumps({"missing": [{"path": "f%%d" %% i, "type": "file"} for i in range(5)]}))\n' > "$STUB"
+run_hook "$NUDGE" "$P" "$P" "-";                                expect_nudge "five items: counted, three named" "5 things differ"
+echo "$OUT" | grep -q 'f0 \[file\], f1 \[file\], f2 \[file\] and 2 more'; [ $? -eq 0 ] && { PASS=$((PASS+1)); echo "ok    and the other two are summarised as 'and 2 more'"; } || { FAIL=$((FAIL+1)); echo "FAIL  'and 2 more' (${OUT:0:240})"; }
+printf 'import time\ntime.sleep(30)\n' > "$STUB"
+start=$SECONDS; AUDAXTECH_NUDGE_TIMEOUT=1 run_hook "$NUDGE" "$P" "$P" "-"; took=$((SECONDS-start))
+expect_quiet "an upgrade check that hangs is cut off: silent"
+[ "$took" -lt 15 ] && { PASS=$((PASS+1)); echo "ok    and the session start is held up for about a second, not 30 (took ${took}s)"; } || { FAIL=$((FAIL+1)); echo "FAIL  the hang is cut off in time (took ${took}s)"; }
+H="$H_SAVE"
+
+echo "== the hook is registered for session start only"
+python -c '
+import json, sys
+h = json.load(open(sys.argv[1]))["hooks"]
+ss = h["SessionStart"]
+assert [g["matcher"] for g in ss] == ["startup"], ss
+cmds = [x["command"] for g in ss for x in g["hooks"]]
+assert cmds == ["bash \"${CLAUDE_PLUGIN_ROOT}/hooks/session-start-nudge.sh\""], cmds
+assert "PreToolUse" in h and "session-start-nudge" not in json.dumps(h["PreToolUse"])' "$H/hooks.json"
+if [ $? -eq 0 ]; then PASS=$((PASS+1)); echo "ok    hooks.json: SessionStart on startup only, and the PreToolUse hooks are unchanged"
+else FAIL=$((FAIL+1)); echo "FAIL  hooks.json registration"; fi
+
+safe_rm -r "$T" "$O" "$FAKEBIN" "$OUTER" "$HC" "$P"
 echo; echo "passed: $PASS   failed: $FAIL"
 [ "$FAIL" -eq 0 ]

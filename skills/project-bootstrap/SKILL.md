@@ -163,7 +163,10 @@ For a repo that predates a template or was bootstrapped by an older version
 (for example one with `docs/` holding only DECISIONS, DESIGN, GAMEPLAY and
 HOW_TO_PLAY, and no `design-ideas.md`), or one that grew its own process
 (its own CONTRIBUTING.md and hooks). Use it when the user asks to bring a
-repo up to date, or when a session in such a repo finds the convention missing.
+repo up to date, or when a session in such a repo finds the convention missing. The plugin's
+session-start hook runs the same check (step 1) each session and prints one line when it finds
+anything, so a session that opens with that notice is the usual way here; the notice stops when
+the report is empty, or when `components.setup_nudge_hook` is `false` in `workflow.json`.
 
 1. **Look, change nothing.** Run
    `python <skill>/scripts/upgrade_check.py <repo> [--kind <kind>]`.

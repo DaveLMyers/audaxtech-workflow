@@ -93,6 +93,7 @@
     "ci": true,
     "merge_gate_hook": true,
     "cwd_guard_hook": true,
+    "setup_nudge_hook": true,
     "game_docs": true,
     "cross_platform_habits": true,
     "translatable_text": true

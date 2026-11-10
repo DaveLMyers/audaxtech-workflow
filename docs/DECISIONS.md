@@ -187,3 +187,13 @@ need renegotiating when collaborators join.
 **Why:** It is the cheapest step toward other platforms and needs no abstraction layer. Where a shared rule named a Claude mechanism (for example the `pr-check` skill), the shared file says what the check is and names the skill as the Claude way to run it. The cost: on other platforms the hooks' guarantees are advice, not gates; that stays an open decision in #75.
 
 **Related:** #77, #75, docs/design-ideas.md
+
+## 2026-11-10 - A project that is behind the plugin gets a session-start notice from the upgrade check, not an automatic edit
+
+**Context:** Issue #84, found while releasing 0.2.0. `claude plugin update` swaps the plugin's files and nothing else, so a project set up by an older version keeps working and says nothing, and the owner has to remember to ask for upgrade mode after every release.
+
+**Decision:** A SessionStart hook (`hooks/session-start-nudge.sh`, on `startup` only) runs the read-only `upgrade_check.py` for the project and, if it reports anything (a missing piece, an old project copy of the plugin's hooks, a shadowing skill, macOS CI on every PR), prints one line naming up to three items and suggesting upgrade mode. It repeats every session until the project is brought up to date. It never edits anything. It is inert without `.claude/workflow.json` and is switched off per project with `components.setup_nudge_hook: false`. Any failure (no marker, a check that crashes or runs past `AUDAXTECH_NUDGE_TIMEOUT`, default 10 seconds) is silent.
+
+**Why:** Installing a plugin is user-scope and does not know which repos use it, and a change to a repo should be a visible, reviewable step, so editing projects on update was rejected. The model is Django's "unapplied migrations" notice and Rails' pending-migrations check: they look at the project's real state, not at a version number, and they repeat until you act, with an off switch for when you have decided not to. A stamp in `workflow.json` compared with a plugin version or a hand-kept counter was built first and dropped: every release so far changed templates or checks, so a counter would be bumped nearly every time and a forgotten bump would silently miss the very update it exists to announce. Because the nudge is the check itself, a release that adds a template or check is reported in every project that lacks it, as long as the check is updated in the same change. Cost: a project that declines an item hears about it every session until it uses the switch.
+
+**Related:** #84, #77, #79
