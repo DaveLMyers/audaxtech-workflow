@@ -61,6 +61,7 @@ omit its files **and** the doc sentences/links that mention it.
 | `ci` | `.github/workflows/ci.yml` |
 | `merge_gate_hook` | No files: the plugin's hook, active in this project because `workflow.json` exists. `false` switches it off here. Needs `ci`. |
 | `cwd_guard_hook` | No files: same mechanism as above. |
+| `setup_nudge_hook` | No files: same mechanism. At session start the plugin runs the read-only upgrade check and, if it finds anything, prints one line suggesting upgrade mode. It repeats each session until the project is brought up to date; `false` switches it off for this project (for example a repo you have decided to leave as it is). It only prints; it never edits. |
 
 ## The project's `.claude/workflow.json`
 

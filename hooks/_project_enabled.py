@@ -53,7 +53,7 @@ def main():
     except Exception as e:  # unreadable or malformed marker
         sys.stderr.write(
             "audaxtech-workflow: %s exists but could not be read (%s). "
-            "Its hooks (merge gate, cwd guard) are OFF for this project until "
+            "Its hooks (merge gate, cwd guard, session-start notice) are OFF for this project until "
             "that file is valid JSON.\n" % (path, e)
         )
         sys.exit(3)

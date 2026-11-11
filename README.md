@@ -22,7 +22,7 @@ The same flow as text, for contributors, is in [CONTRIBUTING.md](CONTRIBUTING.md
 | `blind-spec-reviewer` agent | Lists what should be tested, from the spec alone, never seeing the implementation. |
 | `test-saboteur` agent | Tries to build subtly wrong implementations the existing tests would still accept. |
 | `github-projects-workflow` skill | Gotchas for driving a Projects v2 board with `gh` (issues don't join the board on their own, `item-list` silently paginates, and so on). |
-| Hooks | A merge gate that denies a PR merge unless CI is green, and a guard that denies git-mutating commands run from the wrong repository. Both are **inert** in any project without a `.claude/workflow.json` marker. |
+| Hooks | A merge gate that denies a PR merge unless CI is green, and a guard that denies git-mutating commands run from the wrong repository. A session-start notice, one line, when the read-only upgrade check finds that a project is behind the installed plugin (it only tells you, every session until you upgrade or switch it off; upgrade mode is still your call). All three are **inert** in any project without a `.claude/workflow.json` marker. |
 
 ## Install
 
@@ -43,7 +43,7 @@ Once a project is set up, say "work issue #N" and the `work-issue` skill runs th
 
 In a new or existing repo, ask Claude to bootstrap the project (or run `/audaxtech-workflow:project-bootstrap`). It asks what kind of project it is, then which engine, proposes the labels and board, and **asks once before touching GitHub** (creating the repo, board and labels). Local files are written first, so a failure in the board step leaves a working repo.
 
-A project opts in to the hooks by having `.claude/workflow.json`, which bootstrap writes. Delete it, or set a component to `false` in it, to switch a hook off for that one project.
+A project opts in to the hooks by having `.claude/workflow.json`, which bootstrap writes. Delete it, or set a component to `false` in it, to switch a hook off for that one project. After you update the plugin, a project that is behind gets a one-line notice at the start of each session; ask Claude to bring the project up to date (upgrade mode) to see what changed, or set `components.setup_nudge_hook` to `false` to stop the notice for a project you are leaving as it is.
 
 ## Kinds and stacks
 
