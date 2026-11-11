@@ -40,7 +40,9 @@ current folder, which is not the project when you are in the skill's folder).
    the project's `run` skill, and any doc the issue links. Check `docs/DECISIONS.md`
    for anything that already settles the question.
 4. **Say your plan in about five lines:** what you will build, the acceptance
-   criteria, where it likely touches, anything unclear. **Proceed unless** there are
+   criteria, where it likely touches, anything unclear. If the work crosses layers
+   (see "Build a thin vertical slice first" in section 3), name the slice: what is in
+   it and what is deliberately left out. If it does not, say "no slice needed" and why. **Proceed unless** there are
    no acceptance criteria, an open design question, a conflict with DECISIONS.md,
    or a choice that is the owner's taste. Then ask those specific questions in one batch.
 
@@ -56,6 +58,17 @@ current folder, which is not the project when you are in the skill's folder).
 ## 3. Implement
 - Follow CONTRIBUTING and the stack conventions. **Follow the acceptance criteria
   literally, including the "no X" lines** (for example "no GAMEPLAY.md change").
+- **Build a thin vertical slice first.** This is the default for a feature that crosses
+  layers (UI, API, storage, or any other tiers) or carries real uncertainty (UI feel, an
+  integration, a new data shape). Do not build it layer by layer, because nothing can be
+  tried until the last layer lands and feedback arrives late. Build the smallest path
+  through every layer that works end to end, a single case with the rest stubbed or
+  hard-coded, then verify it, show it to the user (Gate 1 below is the natural moment),
+  and widen from there: more cases, edge cases, polish. Each widening step keeps the
+  slice working. A slice is not a throwaway prototype: it is the real code, kept thin.
+  **Skip it** for a single-layer fix, a refactor or pure logic, where the slice is just
+  the change; say "no slice needed" and why in one line instead of inventing one. When
+  unsure whether the work crosses layers, ask in the plan rather than guessing.
 - Logic with branching or edge cases gets tests in the same change; prefer a pure
   function. Run the suite and the boot/import check using the project's `run` skill.
 - Commits: Conventional Commits, scope from the area label, reference `(#N)`, small
@@ -81,7 +94,9 @@ current folder, which is not the project when you are in the skill's folder).
 - Read your own diff before moving on.
 
 ## 4. Gate 1: the user tries it before anything is pushed
-Tests and the boot check must be green first. Then:
+Tests and the boot check must be green first. For a sliced feature, offer the slice
+for trying as soon as it works end to end, before widening, and again at the end.
+Then:
 - **Player-facing change:** launch it (check for an already-running instance
   first, per the `run` skill), tell the user exactly what to try, and wait.
 - **Otherwise:** say what you verified and how.

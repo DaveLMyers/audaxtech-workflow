@@ -56,6 +56,14 @@ you (see also the global `github-projects-workflow` skill):
 Use the issue templates. A good issue names the observable outcome, not the
 mechanism - "the report downloads as a CSV" rather than "write exportCsv()".
 
+## Building a feature
+
+A feature that crosses layers (UI, API, storage) or carries real uncertainty is built as a
+**thin vertical slice first**: the smallest path through every layer that works end to end,
+tried by a person, then widened. Not layer by layer, where nothing can be tried until the
+last layer lands. A single-layer fix, a refactor or pure logic needs no slice: the slice is
+just the change.
+
 ## Branching model
 
 **GitHub Flow.** `main` is always working (buildable, bootable).
