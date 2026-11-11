@@ -197,3 +197,13 @@ need renegotiating when collaborators join.
 **Why:** Installing a plugin is user-scope and does not know which repos use it, and a change to a repo should be a visible, reviewable step, so editing projects on update was rejected. The model is Django's "unapplied migrations" notice and Rails' pending-migrations check: they look at the project's real state, not at a version number, and they repeat until you act, with an off switch for when you have decided not to. A stamp in `workflow.json` compared with a plugin version or a hand-kept counter was built first and dropped: every release so far changed templates or checks, so a counter would be bumped nearly every time and a forgotten bump would silently miss the very update it exists to announce. Because the nudge is the check itself, a release that adds a template or check is reported in every project that lacks it, as long as the check is updated in the same change. Cost: a project that declines an item hears about it every session until it uses the switch.
 
 **Related:** #84, #77, #79
+
+## 2026-11-11 - Cross-layer features are built as a thin vertical slice by default
+
+**Context:** Issue #92. Left alone, Claude builds a feature in whatever order the task suggests, often layer by layer (UI, then API, then storage), so nothing can be tried until the last layer lands. The owner wanted early feedback without having to ask for a slice each time.
+
+**Decision:** `work-issue` plans and builds a feature that crosses layers, or carries real uncertainty (UI feel, an integration, a new data shape), as the smallest working end-to-end path first, offers it for trying, then widens. It is the default, not an option. It is skipped for a single-layer fix, a refactor or pure logic, where the slice is just the change; the plan says "no slice needed" and why. CONTRIBUTING.md and the bootstrap template state the rule. Prose only: no hook or script enforces it.
+
+**Why:** A rule the owner must remember to invoke is a rule that gets forgotten. The exception is stated so the default does not turn into inventing a "slice" for work that has no layers. Cost: it is guidance a session can ignore; it is checked by the plan step naming the slice, and by the owner at Gate 1.
+
+**Related:** #92, skills/work-issue/SKILL.md
