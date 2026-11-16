@@ -44,7 +44,9 @@ current folder, which is not the project when you are in the skill's folder).
    (see "Build a thin vertical slice first" in section 3), name the slice: what is in
    it and what is deliberately left out. If it does not, say "no slice needed" and why.
    If the change adds or reshapes code modules, also name them (see "Design deep modules"
-   in section 3): for each, its interface and what it hides. **Proceed unless** there are
+   in section 3): for each, its interface and what it hides. If the change has logic with real
+   branching, say that you will build it test-first (see "Test first" in section 3), or "no TDD
+   needed" and why. **Proceed unless** there are
    no acceptance criteria, an open design question, a conflict with DECISIONS.md,
    or a choice that is the owner's taste. Then ask those specific questions in one batch.
 
@@ -79,8 +81,20 @@ current folder, which is not the project when you are in the skill's folder).
   to widening its interface, and keep callers off its internals. This is a judgment, not a
   rule to satisfy: a small module with a real reason is fine, and a one-file change or
   prose needs only "no new modules".
-- Logic with branching or edge cases gets tests in the same change; prefer a pure
-  function. Run the suite and the boot/import check using the project's `run` skill.
+- **Test first for logic with real branching or edge cases (tracer-bullet TDD).** One
+  behavior at a time: write a test, run it and **show the red** (confirm it fails for the
+  right reason, not a typo or a missing import), write the least code that makes it pass,
+  then refactor with the tests green; repeat for the next behavior. Do not write all the
+  tests up front, because that tests imagined behavior and couples the tests to internals.
+  Every test goes through the module's public interface (the one named in the plan), never
+  its internals, so a refactor does not break it. The first red test exercises that
+  interface. For meaningfully complex logic, spawn `blind-spec-reviewer` with the spec
+  before implementing and treat its list as the test plan; `test-saboteur` stays in
+  `pr-check` as the after-the-fact audit. **Skip it** for prose (skills, agents,
+  templates), glue code, and a single-layer refactor with existing coverage; say "no TDD
+  needed" and why in one line. Logic with branching or edge cases still gets its tests in
+  the same change; prefer a pure function. Run the suite and the boot/import check using
+  the project's `run` skill.
 - Commits: Conventional Commits, scope from the area label, reference `(#N)`, small
   and logical, with the attribution trailer the environment specifies. **Stage files by
   name** (`git add <paths>`), not `git add -A`, so nothing unintended is included. Never
