@@ -17,6 +17,9 @@ rules that only apply to Claude Code.
 - **Before calling any PR or issue "done" or "ready to merge"**: run the
   pre-merge check (in Claude Code, the `pr-check` skill from the audaxtech-workflow
   plugin). Standing step.
+- **Prefer deep modules over shallow ones**: a small interface over a lot of behavior.
+  Before adding a module, say what it hides and why it exists; don't add pass-throughs
+  or wrappers whose interface is as big as their body.
 - **This is a tool, not a game.** There are no game docs. Tests live in
   `tests/` (`bash tests/run-hook-tests.sh`, `run-toolchain-tests.sh`,
   `run-workissue-tests.sh`, `run-bootstrap-tests.sh`, `run-saferm-tests.sh`) and must pass before a PR is ready.
