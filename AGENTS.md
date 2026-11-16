@@ -10,7 +10,9 @@ rules that only apply to Claude Code.
 
 - **Check `git status`/`git branch` before any repo-modifying action.** The
   user may run several agent sessions against this repo concurrently -
-  don't assume the working tree is how you left it.
+  don't assume the working tree is how you left it. Sessions running in parallel
+  each need their own worktree: sharing one checkout means one session's branch
+  switch changes the files under all the others.
 - **Prefer `git -C "<repo path>" <command>` over relying on cwd** for any git
   command, and never leave a cross-repo `cd` unreverted across tool calls -
   bundle it with the command that needs it.

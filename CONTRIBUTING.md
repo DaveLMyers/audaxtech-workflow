@@ -96,6 +96,10 @@ exists, before writing it; review looks for shallow ones. It is a judgment, not 
 
 - Branch off `main` for every change, named `<type>/<short-description>`,
   e.g. `feature/work-issue-ci-guidance`, `fix/board-status-repo-flag`.
+- **One checkout per session.** Agent sessions running in parallel each get their own
+  worktree (`git worktree add`, or a worktree session in the app). Sessions sharing one
+  checkout switch branches under each other, and the cwd-guard hook does not catch that: it
+  only checks that git commands run in the right repo.
 - Open a PR against `main` early if you want feedback; draft PRs are fine.
 - Merge via **squash merge** - one commit per logical change on `main`.
   Delete the branch after merge.
