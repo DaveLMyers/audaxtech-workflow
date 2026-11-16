@@ -12,6 +12,45 @@ work gets its own issue; the entry here stays, with its status updated.
 
 ---
 
+## 2026-11-16 - Document rot
+
+**Status:** raw (no issue to build it; #100 only logged it)
+
+**Thought:** "Something I want to follow up on later is document rot and minimizing document
+rot."
+
+**Context (from Claude, not part of the idea):**
+- **What the workflow does about it today.** CONTRIBUTING "Writing docs" says to leave out what
+  goes stale (counts, file lists, command output) and link to the source instead. The "Skills
+  and docs describe each other" rule says a change to a skill, the README table or a template
+  updates the others in the same PR. `pr-check` step 5 checks that docs a PR touches stay
+  current. All three rely on someone remembering to look, at the time of the change.
+- **A recent example.** On 2026-11-16 the independent review of #99 found that the README table
+  rows for `work-issue` and `pr-check` did not mention a change to both skills. The convention
+  existed and was missed anyway, which suggests the rule is sound and the gap is the checking.
+- **Where rot likely hides** (a reading of this repo, not measured): docs that restate behaviour
+  a skill already defines, such as the README table, the mermaid diagram and `docs/workflow.svg`;
+  templates that bootstrap copies into projects, which never update on their own (see the
+  2026-10-16 entry on drift); `DECISIONS.md` entries whose "Cost" or "Revisit" lines were
+  true when written.
+- **Both kinds of rot are in scope.** Rot in this repo's own docs, and rot in the docs the plugin
+  generates for other projects (CONTRIBUTING, AGENTS.md), which is harder to see.
+
+**Candidates, none started** (file a separate issue for any the owner picks):
+1. Measure first: list which docs restate something defined elsewhere, and how often each
+   changed against what it describes.
+2. A cheap check in CI or `pr-check` that flags a change to a skill when the README table or the
+   diagram did not change.
+3. Shrink what can rot: replace restated prose with links, or generate the README table from the
+   skills' own front matter.
+4. Extend `upgrade_check.py` to compare template sections, which also covers the generated docs
+   (the same idea as candidate 5 in the 2026-10-16 entry).
+
+**Open decisions:** whether the fix is a check, less duplication, or both; whether generated
+project docs are in scope or only this repo's.
+
+---
+
 ## 2026-11-09 - Beyond Claude Code
 
 **Status:** raw (tracked by #75, which stays open as the pointer)
