@@ -444,5 +444,72 @@ mcx "$(ovrepo o3 '{"version":1,"kind":"game","ci":{"macos_on_every_pr":"true"}}'
 mcx "$(ovrepo o4 '{"version":1,"kind":"game","ci":{"matrix":[]}}')"; [ $rc -eq 1 ]; chk "a ci block without the key: the default applies, flagged" $? "rc=$rc $out"
 mcx "$(ovrepo o5 '{"version":1,"kind":"game","macos_on_every_pr":true}')"; [ $rc -eq 1 ]; chk "the key outside the ci block is not an override: flagged" $? "rc=$rc $out"
 
+echo "== wait_for_ci.py (fake gh; a sequence of answers, one per poll)"
+WC="$S/wait_for_ci.py"
+cat > "$W/fake_checks.py" <<'PYEOF4'
+import os, sys
+seq = open(os.environ["FAKE_SEQ"]).read().splitlines()
+cf = os.environ["FAKE_SEQ"] + ".n"
+n = int(open(cf).read()) if os.path.exists(cf) else 0
+open(cf, "w").write(str(n + 1))
+open(os.environ["FAKE_SEQ"] + ".log", "a").write(os.getcwd() + " | " + " ".join(sys.argv[1:]) + "\n")
+line = seq[min(n, len(seq) - 1)]
+if line == "ERR":
+    sys.stderr.write("fake gh: boom\n"); sys.exit(1)
+sys.stdout.write(line + "\n")
+sys.exit(8 if "pending" in line else (1 if '"fail"' in line else 0))   # like gh: non-zero unless all passed
+PYEOF4
+P='{"name":"Tests (Linux)","bucket":"pass"}'; Q='{"name":"Tests (Windows)","bucket":"pending"}'
+F='{"name":"Tests (Windows)","bucket":"fail"}'; K='{"name":"Lint","bucket":"skipping"}'; C='{"name":"Tests (Windows)","bucket":"cancel"}'
+# wfseq <answer>... -- <wait_for_ci args> : one answer per poll (the last repeats); sets $out $rc $calls
+wfseq() { local seq="$W/seq.txt"; rm -f "$seq" "$seq.n" "$seq.log"; while [ "$1" != "--" ]; do printf '%s\n' "$1" >> "$seq"; shift; done; shift
+          out="$(AUDAX_GH="python $WN/fake_checks.py" FAKE_SEQ="$WN/seq.txt" python "$WC" 95 --interval 0 "$@" 2>&1)"; rc=$?
+          calls="$(cat "$seq.n" 2>/dev/null)"; }
+
+wfseq "[$Q,$P]" "[$Q,$P]" "[{\"name\":\"Tests (Windows)\",\"bucket\":\"pass\"},$P]" -- --max-wait 60
+[ $rc -eq 0 ] && echo "$out" | grep -q "^green: all 2 checks passed" && [ "$calls" = "3" ]; chk "pending, pending, then all pass: waits, then exit 0 'green' after 3 polls" $? "rc=$rc calls=$calls $out"
+wfseq "[$P,$K]" -- --max-wait 60
+[ $rc -eq 0 ] && echo "$out" | grep -q "^green"; chk "a skipped check counts as passed" $? "rc=$rc $out"
+wfseq "[$P,$F]" -- --max-wait 60
+[ $rc -eq 1 ] && echo "$out" | grep -q "^red: 1 of 2" && echo "$out" | grep -q "Tests (Windows)"; chk "a failed check: exit 1 'red', naming the check" $? "rc=$rc $out"
+wfseq "[$P,$C]" -- --max-wait 60
+[ $rc -eq 1 ] && echo "$out" | grep -q "^red"; chk "a cancelled check is red too" $? "rc=$rc $out"
+wfseq "[$F,$Q]" "[$F,$P]" -- --max-wait 60
+[ $rc -eq 1 ] && [ "$calls" = "2" ]; chk "a failure while another check is still pending does not end the wait early" $? "rc=$rc calls=$calls $out"
+wfseq "[]" "[]" "[$P]" -- --max-wait 60
+[ $rc -eq 0 ] && [ "$calls" = "3" ]; chk "an empty list means 'not started', not 'done': keeps waiting for checks to appear" $? "rc=$rc calls=$calls $out"
+wfseq "[]" -- --max-wait 0
+[ $rc -eq 4 ] && echo "$out" | grep -q "^timeout: no checks appeared"; chk "no checks ever (a repo with no workflows): bounded, exit 4 'timeout'" $? "rc=$rc $out"
+wfseq "[$P,$Q]" -- --max-wait 0
+[ $rc -eq 4 ] && echo "$out" | grep -q "^timeout: still pending" && echo "$out" | grep -q "Tests (Windows)"; chk "checks that never finish: exit 4 'timeout', naming the pending check" $? "rc=$rc $out"
+wfseq "ERR" -- --max-wait 60
+[ $rc -eq 3 ] && echo "$out" | grep -q "^error:" && [ "$calls" = "5" ]; chk "gh failing five polls in a row: exit 3 'error', not a hang" $? "rc=$rc calls=$calls $out"
+wfseq "ERR" "ERR" "[$P]" -- --max-wait 60
+[ $rc -eq 0 ] && [ "$calls" = "3" ]; chk "a transient gh failure is ridden out" $? "rc=$rc calls=$calls $out"
+wfseq "ERR" "ERR" "ERR" "ERR" "[$Q]" "ERR" "ERR" "ERR" "ERR" "[$P]" -- --max-wait 60
+[ $rc -eq 0 ] && [ "$calls" = "10" ]; chk "the error count resets after a good answer (4 + 4 errors in a row never trips the limit)" $? "rc=$rc calls=$calls $out"
+wfseq "this is not json" -- --max-wait 60
+[ $rc -eq 3 ]; chk "output that is not JSON counts as a gh failure" $? "rc=$rc $out"
+wfseq '{"name":"x"}' -- --max-wait 60
+[ $rc -eq 3 ]; chk "JSON that is not a list counts as a gh failure" $? "rc=$rc $out"
+
+wfseq "[$P]" -- --repo me/proj
+grep -q "pr checks 95 --json name,bucket --repo me/proj" "$W/seq.txt.log"; chk "--repo owner/name is passed to gh" $? "$(cat "$W/seq.txt.log" 2>/dev/null)"
+mkdir -p "$W/wc_marker_dir"
+wfseq "[$P]" -- --repo "$WN/wc_marker_dir"
+head -1 "$W/seq.txt.log" | grep -q "wc_marker_dir |"; chk "--repo <folder> runs gh from that folder" $? "$(cat "$W/seq.txt.log" 2>/dev/null)"
+! grep -q -- "--repo" "$W/seq.txt.log"; chk "...and does not pass the folder as --repo" $? "$(cat "$W/seq.txt.log" 2>/dev/null)"
+
+wc_bad() { out="$(AUDAX_GH="python $WN/fake_checks.py" FAKE_SEQ="$WN/seq.txt" python "$WC" "$@" 2>&1)"; rc=$?; }
+wc_bad; [ $rc -eq 2 ]; chk "no PR number: usage error (exit 2)" $? "rc=$rc $out"
+wc_bad abc; [ $rc -eq 2 ]; chk "a non-numeric PR: exit 2" $? "rc=$rc $out"
+wc_bad 95 --repo "$W/does-not-exist"; [ $rc -eq 2 ]; chk "--repo that is neither owner/name nor a folder: exit 2" $? "rc=$rc $out"
+wc_bad 95 --interval abc; [ $rc -eq 2 ]; chk "--interval that is not a number: exit 2" $? "rc=$rc $out"
+wc_bad 95 --max-wait -1; [ $rc -eq 2 ]; chk "a negative --max-wait: exit 2" $? "rc=$rc $out"
+wc_bad 95 --interval; [ $rc -eq 2 ]; chk "an option with no value: exit 2" $? "rc=$rc $out"
+wc_bad 95 --nope; [ $rc -eq 2 ]; chk "an unknown option: exit 2" $? "rc=$rc $out"
+wc_bad 95 96; [ $rc -eq 2 ]; chk "a second PR number: exit 2" $? "rc=$rc $out"
+grep -q "wait_for_ci.py" "$HERE/../skills/work-issue/SKILL.md"; chk "work-issue's SKILL.md runs the script" $? ""
+
 echo; echo "passed: $PASS   failed: $FAIL"
 [ "$FAIL" -eq 0 ]
