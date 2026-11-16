@@ -140,13 +140,31 @@ per launch:
   repo's PR template: what changed, why (`Closes #N`), how it was verified (be
   specific, including what the user tried), what was not verified, checklist.
 - If the session has PR tools (`get_status`, `bind_pr`), bind the PR and read CI
-  through them. **Do not poll CI** in a loop or with repeated `gh` calls, but **do look**:
-  read the status (`get_status`, or one `gh pr checks`) at the start of every turn while a
-  PR is open, and act on what it says. "Do not poll" never means "do not look".
-- **Waiting for CI.** Offer the app's PR monitor (auto-fix) once: it wakes the session with a
-  `<ci-monitor-event>` when CI fails, so there is nothing to poll. With it off, the user's
-  next message is the wake-up: check status then. Pending CI is not a reason to tell the
-  user you are stuck; say it is pending and what happens next.
+  through them. **The model never polls CI** (no loop of tool calls, no repeated `gh` calls:
+  each one costs a turn), but it **does look**: read the status (`get_status`, or one
+  `gh pr checks`) at the start of every turn while a PR is open, and act on what it says.
+  Waiting is the next bullet's job, and it is done by a command, not by the model.
+- **Waiting for CI: start one background watch, then end the turn.** After the push that
+  opens the PR, and after every later push, run
+  `python scripts/wait_for_ci.py <pr number> --repo <path to the project>` with the shell
+  tool's `run_in_background` and a `timeout` longer than `--max-wait` (for example
+  `1900000` ms), so the harness does not cut it off first, say that CI is pending and that you will be woken when it ends,
+  and end the turn with no further tool calls. The script polls on the owner's machine until
+  every check has finished, then exits, and the app delivers one notification: the session
+  wakes on a green run as well as a red one, with no message from the owner. On that
+  notification, read the status once (`get_status` or one `gh pr checks`; the script's line
+  is a hint, not proof) and act: green means the standing instruction below or Gate 2; red
+  means report it (or fix it, if auto-fix is on); timeout or error means say so and what
+  you know. Limits: it only runs while the session is open (it dies if the app closes), it
+  gives up after 30 minutes (`--max-wait`) and after five failed `gh` calls in a row, and a
+  repo with no checks ends in a timeout, not a hang. A background-task notification is only
+  this wake-up: it is not an answer from the user (see below).
+- **Also offer the app's PR monitor (auto-fix) once.** It covers what the watch does not:
+  CI failures fixed unprompted, merge conflicts and review comments, delivered as a
+  `<ci-monitor-event>`. It does not wake the session on a green run, which is why the watch
+  exists. With neither running, the user's next message is the wake-up: check status then.
+  Pending CI is not a reason to tell the user you are stuck; say it is pending and what
+  happens next.
 - **A standing instruction such as "merge once CI is green"** is the user's yes for that PR
   (Gate 2 still applies to any other PR). On each wake-up check status: green means merge
   and do the section 8 cleanup; red means report it (or fix it, if auto-fix is on) and do

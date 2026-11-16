@@ -48,7 +48,10 @@ Whether or not the user asked.
 Boot or run the project using its `run` skill / README. For anything with a
 runtime, prefer the real thing over a headless sanity check at least once per
 PR - some failures only show up in the real environment. Then check CI is
-actually green on the PR (`gh pr checks`), not just that it passed locally. A
+actually green on the PR (`gh pr checks`), not just that it passed locally. If it is
+still pending, do not loop on it: use work-issue's background watch
+(`<this skill's base directory>/../work-issue/scripts/wait_for_ci.py <pr> --repo <project>` with
+`run_in_background` and a long `timeout`, then end the turn) and read the status once when it wakes you. A
 red run is a "don't merge"; the plugin's merge hook enforces this for
 `gh pr merge` in sessions where it is active.
 

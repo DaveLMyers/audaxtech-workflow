@@ -207,3 +207,13 @@ need renegotiating when collaborators join.
 **Why:** A rule the owner must remember to invoke is a rule that gets forgotten. The exception is stated so the default does not turn into inventing a "slice" for work that has no layers. Cost: it is guidance a session can ignore; it is checked by the plan step naming the slice, and by the owner at Gate 1.
 
 **Related:** #92, skills/work-issue/SKILL.md
+
+## 2026-11-11 - work-issue waits for CI with one background command, not with the model and not with the owner's next message
+
+**Context:** Issue #90. The app's PR monitor (auto-fix) wakes a session only for CI failures, merge conflicts and review comments; a green run is never an event. So `work-issue` said "offer the monitor, otherwise the owner's next message is the wake-up", and the owner typed a message every time CI finished. Seen on release PR #89 and again on #95, where a promise to "report back when CI finishes" could not be kept.
+
+**Decision:** After each push, `work-issue` starts `scripts/wait_for_ci.py` with `run_in_background` and ends the turn. The script polls `gh pr checks` every 30 seconds on the owner's machine and exits once no check is pending (an empty list counts as not started), and the app delivers one notification, so the session wakes on green and red alike. It is bounded (30 minutes, five failed `gh` calls in a row). The model still never polls; it reads the status once on wake. The app's monitor is still offered for what the watch does not cover. pr-check points at the same script.
+
+**Why:** A background command costs one wake-up, not one model turn per poll, and needs no app setting that does not exist. It was tried by hand on #89 and #95 before it was written down. Cost: it only runs while the session is open, and it is a script to maintain; it has tests with a fake `gh`.
+
+**Related:** #90, #89, #95
