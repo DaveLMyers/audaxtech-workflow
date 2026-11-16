@@ -217,3 +217,13 @@ need renegotiating when collaborators join.
 **Why:** A background command costs one wake-up, not one model turn per poll, and needs no app setting that does not exist. It was tried by hand on #89 and #95 before it was written down. Cost: it only runs while the session is open, and it is a script to maintain; it has tests with a fake `gh`.
 
 **Related:** #90, #89, #95
+
+## 2026-11-16 - Deep modules are a plan-time question and a review lens, not a new agent or a gate
+
+**Context:** Issue #98. Nothing in the workflow addressed module shape: the thin-slice rule keeps work small, and `pr-check`'s review looks for correctness. An agent left alone drifts toward many small single-use modules, pass-throughs and wrappers that look tidy and are shallow (John Ousterhout's "deep vs shallow modules", from *A Philosophy of Software Design*).
+
+**Decision:** `work-issue`'s plan names each module a change touches or adds, with its interface and what it hides, and says why a new one exists. `pr-check` step 3 gets a design lens that flags clear cases only: a pass-through, a wrapper that only renames, an interface about as large as its body, a widened interface where deepening would do, callers depending on internals. The CONTRIBUTING files and the bootstrap `AGENTS.md` carry a short statement of the preference. It is prose and judgment: no hook, script or metric enforces it, and the six `pr-check` steps stay six.
+
+**Why:** Depth cannot be decided mechanically, so a gate would be wrong in both directions, and a checklist the agent fills in without thinking is worse than none (hence "say why", and flag clear cases only). A separate `design-reviewer` agent was considered and left out: it is another file to keep in step, and the review pass already reads the diff. Revisit if the lens turns out noisy or gets skipped. Cost: like the slice rule, it is guidance a session can ignore; the plan step is where it shows.
+
+**Related:** #98, #92, #97

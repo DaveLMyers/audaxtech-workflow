@@ -64,6 +64,10 @@ tried by a person, then widened. Not layer by layer, where nothing can be tried 
 last layer lands. A single-layer fix, a refactor or pure logic needs no slice: the slice is
 just the change.
 
+Prefer **deep modules**: a small interface over a lot of behavior, not many small modules
+whose interfaces are as large as their bodies. Name what a new module hides, and why it
+exists, before writing it; review looks for shallow ones. It is a judgment, not a gate.
+
 ## Branching model
 
 **GitHub Flow.** `main` is always working (buildable, bootable).

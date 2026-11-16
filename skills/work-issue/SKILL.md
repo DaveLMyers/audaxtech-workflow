@@ -42,7 +42,9 @@ current folder, which is not the project when you are in the skill's folder).
 4. **Say your plan in about five lines:** what you will build, the acceptance
    criteria, where it likely touches, anything unclear. If the work crosses layers
    (see "Build a thin vertical slice first" in section 3), name the slice: what is in
-   it and what is deliberately left out. If it does not, say "no slice needed" and why. **Proceed unless** there are
+   it and what is deliberately left out. If it does not, say "no slice needed" and why.
+   If the change adds or reshapes code modules, also name them (see "Design deep modules"
+   in section 3): for each, its interface and what it hides. **Proceed unless** there are
    no acceptance criteria, an open design question, a conflict with DECISIONS.md,
    or a choice that is the owner's taste. Then ask those specific questions in one batch.
 
@@ -69,6 +71,14 @@ current folder, which is not the project when you are in the skill's folder).
   **Skip it** for a single-layer fix, a refactor or pure logic, where the slice is just
   the change; say "no slice needed" and why in one line instead of inventing one. When
   unsure whether the work crosses layers, ask in the plan rather than guessing.
+- **Design deep modules, not shallow ones.** A deep module has a small interface over a lot
+  of behavior; a shallow one has an interface about as large as its body (a pass-through, a
+  wrapper that renames, a class that exists to hold one function). Before coding, name each
+  module the change touches or adds: what callers see, and what it hides. Say why a new
+  module exists; if you cannot, put the code in an existing one. Prefer deepening a module
+  to widening its interface, and keep callers off its internals. This is a judgment, not a
+  rule to satisfy: a small module with a real reason is fine, and a one-file change or
+  prose needs only "no new modules".
 - Logic with branching or edge cases gets tests in the same change; prefer a pure
   function. Run the suite and the boot/import check using the project's `run` skill.
 - Commits: Conventional Commits, scope from the area label, reference `(#N)`, small
@@ -138,7 +148,9 @@ per launch:
 - Push with `-u`. Write the **PR body to a file** (never inline in a shell command:
   backticks and quotes get eaten, and the merge-gate hook reads command text). Use the
   repo's PR template: what changed, why (`Closes #N`), how it was verified (be
-  specific, including what the user tried), what was not verified, checklist.
+  specific, including what the user tried), what was not verified, checklist. When the
+  change added or reshaped code modules, list them with what each hides (from the plan),
+  so `pr-check`'s design lens has something to check against.
 - If the session has PR tools (`get_status`, `bind_pr`), bind the PR and read CI
   through them. **The model never polls CI** (no loop of tool calls, no repeated `gh` calls:
   each one costs a turn), but it **does look**: read the status (`get_status`, or one
