@@ -147,7 +147,8 @@ per launch:
 - **Waiting for CI: start one background watch, then end the turn.** After the push that
   opens the PR, and after every later push, run
   `python scripts/wait_for_ci.py <pr number> --repo <path to the project>` with the shell
-  tool's `run_in_background`, say that CI is pending and that you will be woken when it ends,
+  tool's `run_in_background` and a `timeout` longer than `--max-wait` (for example
+  `1900000` ms), so the harness does not cut it off first, say that CI is pending and that you will be woken when it ends,
   and end the turn with no further tool calls. The script polls on the owner's machine until
   every check has finished, then exits, and the app delivers one notification: the session
   wakes on a green run as well as a red one, with no message from the owner. On that

@@ -456,13 +456,13 @@ open(os.environ["FAKE_SEQ"] + ".log", "a").write(os.getcwd() + " | " + " ".join(
 line = seq[min(n, len(seq) - 1)]
 if line == "ERR":
     sys.stderr.write("fake gh: boom\n"); sys.exit(1)
-sys.stdout.write(line + "\n")
+sys.stdout.buffer.write((line + "\n").encode("utf-8"))   # gh writes UTF-8 bytes
 sys.exit(8 if "pending" in line else (1 if '"fail"' in line else 0))   # like gh: non-zero unless all passed
 PYEOF4
 P='{"name":"Tests (Linux)","bucket":"pass"}'; Q='{"name":"Tests (Windows)","bucket":"pending"}'
 F='{"name":"Tests (Windows)","bucket":"fail"}'; K='{"name":"Lint","bucket":"skipping"}'; C='{"name":"Tests (Windows)","bucket":"cancel"}'
 # wfseq <answer>... -- <wait_for_ci args> : one answer per poll (the last repeats); sets $out $rc $calls
-wfseq() { local seq="$W/seq.txt"; rm -f "$seq" "$seq.n" "$seq.log"; while [ "$1" != "--" ]; do printf '%s\n' "$1" >> "$seq"; shift; done; shift
+wfseq() { local seq="$W/seq.txt"; safe_rm "$seq" "$seq.n" "$seq.log"; while [ "$1" != "--" ]; do printf '%s\n' "$1" >> "$seq"; shift; done; shift
           out="$(AUDAX_GH="python $WN/fake_checks.py" FAKE_SEQ="$WN/seq.txt" python "$WC" 95 --interval 0 "$@" 2>&1)"; rc=$?
           calls="$(cat "$seq.n" 2>/dev/null)"; }
 
@@ -474,6 +474,14 @@ wfseq "[$P,$F]" -- --max-wait 60
 [ $rc -eq 1 ] && echo "$out" | grep -q "^red: 1 of 2" && echo "$out" | grep -q "Tests (Windows)"; chk "a failed check: exit 1 'red', naming the check" $? "rc=$rc $out"
 wfseq "[$P,$C]" -- --max-wait 60
 [ $rc -eq 1 ] && echo "$out" | grep -q "^red"; chk "a cancelled check is red too" $? "rc=$rc $out"
+wfseq "[$P,$F,$C,$K]" -- --max-wait 60
+[ $rc -eq 1 ] && echo "$out" | head -1 | grep -q "^red: 2 of 4 checks did not pass" && [ "$(echo "$out" | grep -c "^  ")" = "2" ] && ! echo "$out" | grep -q "Tests (Linux)\|Lint"; chk "red: counts failed + cancelled out of ALL checks, lists only those two, not the passed or skipped ones" $? "rc=$rc $out"
+wfseq '[{"name":"Odd","bucket":"neutral"},'"$P"']' -- --max-wait 60
+[ $rc -eq 1 ] && echo "$out" | grep -q "^red: 1 of 2" && echo "$out" | grep -q "Odd"; chk "a bucket the script does not know is red, never silently green" $? "rc=$rc $out"
+wfseq '[{"name":"NoBucket"},'"$P"']' -- --max-wait 60
+[ $rc -eq 1 ] && echo "$out" | grep -q "NoBucket"; chk "a check with no bucket is red too" $? "rc=$rc $out"
+wfseq "[$P]" -- --max-wait 0
+[ $rc -eq 0 ] && [ "$calls" = "1" ]; chk "--max-wait 0 still polls once, and a finished run gives its verdict, not a timeout" $? "rc=$rc calls=$calls $out"
 wfseq "[$F,$Q]" "[$F,$P]" -- --max-wait 60
 [ $rc -eq 1 ] && [ "$calls" = "2" ]; chk "a failure while another check is still pending does not end the wait early" $? "rc=$rc calls=$calls $out"
 wfseq "[]" "[]" "[$P]" -- --max-wait 60
@@ -481,9 +489,33 @@ wfseq "[]" "[]" "[$P]" -- --max-wait 60
 wfseq "[]" -- --max-wait 0
 [ $rc -eq 4 ] && echo "$out" | grep -q "^timeout: no checks appeared"; chk "no checks ever (a repo with no workflows): bounded, exit 4 'timeout'" $? "rc=$rc $out"
 wfseq "[$P,$Q]" -- --max-wait 0
-[ $rc -eq 4 ] && echo "$out" | grep -q "^timeout: still pending" && echo "$out" | grep -q "Tests (Windows)"; chk "checks that never finish: exit 4 'timeout', naming the pending check" $? "rc=$rc $out"
+[ $rc -eq 4 ] && echo "$out" | grep -q "^timeout: still pending" && echo "$out" | grep -q "Tests (Windows)" && ! echo "$out" | grep -q "Tests (Linux)"; chk "checks that never finish: exit 4 'timeout', naming only the pending check" $? "rc=$rc $out"
 wfseq "ERR" -- --max-wait 60
 [ $rc -eq 3 ] && echo "$out" | grep -q "^error:" && [ "$calls" = "5" ]; chk "gh failing five polls in a row: exit 3 'error', not a hang" $? "rc=$rc calls=$calls $out"
+wfseq "ERR" "ERR" "ERR" "ERR" "[]" "ERR" "ERR" "ERR" "ERR" "[$P]" -- --max-wait 60
+[ $rc -eq 0 ] && [ "$calls" = "10" ]; chk "an empty list is a valid answer: it resets the error count too" $? "rc=$rc calls=$calls $out"
+wfseq "ERR" -- --max-wait 0
+[ $rc -eq 4 ] && [ "$calls" = "1" ]; chk "timeout wins over error when the deadline comes before the fifth failure" $? "rc=$rc calls=$calls $out"
+out="$(AUDAX_GH="$WN/no-such-gh-binary" python "$WC" 95 --interval 0 --max-wait 60 2>&1)"; rc=$?
+[ $rc -eq 3 ] && echo "$out" | grep -q "^error:" && ! echo "$out" | grep -q Traceback; chk "gh missing entirely: exit 3 'error', no traceback" $? "rc=$rc $out"
+SECONDS=0; wfseq "ERR" "ERR" "[$P]" -- --interval 1 --max-wait 60
+[ $rc -eq 0 ] && [ "$calls" = "3" ] && [ "$SECONDS" -ge 2 ]; chk "--interval is honoured, also between failed gh calls (3 polls take at least 2s)" $? "rc=$rc calls=$calls took=${SECONDS}s"
+SECONDS=0; wfseq "[$Q]" "[$P]" -- --interval 1 --max-wait 60
+[ $rc -eq 0 ] && [ "$SECONDS" -ge 1 ]; chk "--interval is honoured between pending polls" $? "rc=$rc took=${SECONDS}s"
+wfseq '[{"name":"Tést ✓ 构建","bucket":"pass"}]' -- --max-wait 60
+[ $rc -eq 0 ] && echo "$out" | grep -q "^green"; chk "a check name with non-ASCII characters is read as UTF-8 (not an 'error')" $? "rc=$rc $out"
+printf '%s\n' '[{"name":"Tést ✓ 构建","bucket":"fail"}]' > "$W/seq.txt"; safe_rm "$W/seq.txt.n"
+out="$(PYTHONIOENCODING=ascii AUDAX_GH="python $WN/fake_checks.py" FAKE_SEQ="$WN/seq.txt" python "$WC" 95 --interval 0 2>&1)"; rc=$?
+[ $rc -eq 1 ] && echo "$out" | grep -q "^red: 1 of 1" && ! echo "$out" | grep -q Traceback; chk "a name the console cannot encode is printed with replacements: still exit 1 'red', no crash" $? "rc=$rc $out"
+wfseq '[1,2]' -- --max-wait 60
+[ $rc -eq 3 ] && [ "$calls" = "5" ]; chk "a list of non-objects is an unusable answer (exit 3), not 'no checks yet'" $? "rc=$rc calls=$calls $out"
+cat > "$W/fake_hang.py" <<'PYEOF5'
+import time; time.sleep(30)
+PYEOF5
+SECONDS=0; out="$(AUDAX_GH_TIMEOUT=1 AUDAX_GH="python $WN/fake_hang.py" python "$WC" 95 --interval 0 --max-wait 0 2>&1)"; rc=$?
+[ $rc -eq 4 ] && [ "$SECONDS" -lt 15 ] && ! echo "$out" | grep -q Traceback; chk "a hung gh is cut off after the timeout and counts as a bad poll (here: then --max-wait ends it)" $? "rc=$rc took=${SECONDS}s $out"
+SECONDS=0; wfseq "[$Q]" -- --interval 20 --max-wait 1
+[ $rc -eq 4 ] && [ "$SECONDS" -lt 10 ]; chk "the sleep never runs past --max-wait (--interval 20 --max-wait 1 ends in about 1s)" $? "rc=$rc took=${SECONDS}s $out"
 wfseq "ERR" "ERR" "[$P]" -- --max-wait 60
 [ $rc -eq 0 ] && [ "$calls" = "3" ]; chk "a transient gh failure is ridden out" $? "rc=$rc calls=$calls $out"
 wfseq "ERR" "ERR" "ERR" "ERR" "[$Q]" "ERR" "ERR" "ERR" "ERR" "[$P]" -- --max-wait 60
@@ -504,10 +536,22 @@ wc_bad() { out="$(AUDAX_GH="python $WN/fake_checks.py" FAKE_SEQ="$WN/seq.txt" py
 wc_bad; [ $rc -eq 2 ]; chk "no PR number: usage error (exit 2)" $? "rc=$rc $out"
 wc_bad abc; [ $rc -eq 2 ]; chk "a non-numeric PR: exit 2" $? "rc=$rc $out"
 wc_bad 95 --repo "$W/does-not-exist"; [ $rc -eq 2 ]; chk "--repo that is neither owner/name nor a folder: exit 2" $? "rc=$rc $out"
+wc_bad 95 --interval -1; [ $rc -eq 2 ]; chk "a negative --interval: exit 2" $? "rc=$rc $out"
+wc_bad 95 --max-wait abc; [ $rc -eq 2 ]; chk "--max-wait that is not a number: exit 2" $? "rc=$rc $out"
+mkdir -p "$W/rel/a/b/c"; safe_rm "$W/seq.txt" "$W/seq.txt.n" "$W/seq.txt.log"; echo "[$P]" > "$W/seq.txt"
+out="$(cd "$W/rel" && AUDAX_GH="python $WN/fake_checks.py" FAKE_SEQ="$WN/seq.txt" python "$WC" 95 --interval 0 --repo a/b/c 2>&1)"; rc=$?
+[ $rc -eq 0 ] && ! grep -q -- "--repo" "$W/seq.txt.log" && head -1 "$W/seq.txt.log" | grep -q "rel.a.b.c |"; chk "a relative folder like a/b/c is a folder, not an owner/name (the regex is anchored)" $? "rc=$rc $out $(cat "$W/seq.txt.log" 2>/dev/null)"
 wc_bad 95 --interval abc; [ $rc -eq 2 ]; chk "--interval that is not a number: exit 2" $? "rc=$rc $out"
 wc_bad 95 --max-wait -1; [ $rc -eq 2 ]; chk "a negative --max-wait: exit 2" $? "rc=$rc $out"
 wc_bad 95 --interval; [ $rc -eq 2 ]; chk "an option with no value: exit 2" $? "rc=$rc $out"
 wc_bad 95 --nope; [ $rc -eq 2 ]; chk "an unknown option: exit 2" $? "rc=$rc $out"
+touch "$W/a-file"; wc_bad 95 --repo "$W/a-file"; [ $rc -eq 2 ]; chk "--repo that is a file, not a folder: exit 2" $? "rc=$rc $out"
+safe_rm "$W/seq.txt.n"; wc_bad 95 --interval abc; [ ! -e "$W/seq.txt.n" ]; chk "a usage error never calls gh" $? "called gh"
+out="$(python -c "
+import importlib.util
+sp = importlib.util.spec_from_file_location('wc', r'$(cygpath -m "$WC" 2>/dev/null || echo "$WC")'); m = importlib.util.module_from_spec(sp); sp.loader.exec_module(m)
+print(m.parse_args(['7']))" 2>&1)"
+[ "$out" = "('7', None, 30.0, 1800.0)" ]; chk "defaults: --interval 30, --max-wait 1800, no --repo" $? "$out"
 wc_bad 95 96; [ $rc -eq 2 ]; chk "a second PR number: exit 2" $? "rc=$rc $out"
 grep -q "wait_for_ci.py" "$HERE/../skills/work-issue/SKILL.md"; chk "work-issue's SKILL.md runs the script" $? ""
 

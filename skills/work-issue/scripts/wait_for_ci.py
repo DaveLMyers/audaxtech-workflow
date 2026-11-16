@@ -17,14 +17,15 @@ the cost is one wake-up, not one per poll. It only runs while the session is ope
 
 A PR with no checks yet reports an empty list, so an empty list counts as "not started",
 not "done". `gh pr checks` exits non-zero when checks are pending or failing, so the exit
-code is ignored and the JSON on stdout is what counts.
+code is ignored and the JSON on stdout is what counts. One gh call is cut off after 60 seconds
+(AUDAX_GH_TIMEOUT overrides it) and counts as a bad poll, so a hung gh cannot stall the wait.
 
 Prints one line: "green: ...", "red: ...", "timeout: ..." or "error: ...", then (for green and
 red) the failing check names. On wake, read the status once (get_status or one `gh pr checks`)
 and act; do not trust this line alone.
 
-Exit codes: 0 all checks passed (skipped checks count as passed) | 1 at least one failed or
-was cancelled | 2 bad usage | 3 gh kept failing | 4 timed out with checks still pending or none
+Exit codes: 0 all checks passed (skipped checks count as passed) | 1 at least one failed, was
+cancelled or has a bucket this script does not know (only pass and skipping count as passed) | 2 bad usage | 3 gh kept failing, or an unexpected crash | 4 timed out with checks still pending or none
 """
 import json
 import os
@@ -37,6 +38,7 @@ import time
 
 OWNER_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9_.-]+$")
 MAX_GH_ERRORS = 5  # consecutive polls where gh gave no usable JSON
+GH_TIMEOUT = float(os.environ.get("AUDAX_GH_TIMEOUT", "60"))  # one gh call; a hung gh is a bad poll
 
 
 def gh_command():
@@ -94,13 +96,15 @@ def poll(pr, repo, cwd):
     if repo:
         args += ["--repo", repo]
     try:
-        r = subprocess.run([*gh_command(), *args], capture_output=True, text=True, cwd=cwd)
+        # gh writes UTF-8; the default text decoding is the Windows code page.
+        r = subprocess.run([*gh_command(), *args], capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", cwd=cwd, timeout=GH_TIMEOUT)
         data = json.loads(r.stdout)
-    except (OSError, ValueError):
+    except (OSError, ValueError, subprocess.SubprocessError):
         return None
-    if not isinstance(data, list):
+    if not isinstance(data, list) or not all(isinstance(c, dict) for c in data):
         return None
-    return [c for c in data if isinstance(c, dict)]
+    return data
 
 
 def main(argv):
@@ -125,7 +129,9 @@ def main(argv):
             errors = 0
             last = checks
             if checks and not any(c.get("bucket") == "pending" for c in checks):
-                bad = [c.get("name", "?") for c in checks if c.get("bucket") in ("fail", "cancel")]
+                # Only pass and skipping count as passed. fail, cancel and any bucket this
+                # script does not know are red: an unknown value must never turn a run green.
+                bad = [c.get("name", "?") for c in checks if c.get("bucket") not in ("pass", "skipping")]
                 if bad:
                     print("red: %d of %d checks did not pass" % (len(bad), len(checks)))
                     for name in bad:
@@ -140,8 +146,21 @@ def main(argv):
             else:
                 print("timeout: no checks appeared after %ds" % max_wait)
             return 4
-        time.sleep(interval)
+        time.sleep(min(interval, max_wait - (time.monotonic() - start)))  # never past the deadline
+
+
+def run(argv):
+    # A check name with characters the console cannot show must not crash the print.
+    try:
+        sys.stdout.reconfigure(errors="replace")
+    except (AttributeError, ValueError):
+        pass
+    try:
+        return main(argv)
+    except Exception as e:  # a crash must not look like exit 1, which means red
+        print("error: unexpected %s: %s" % (type(e).__name__, e))
+        return 3
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    sys.exit(run(sys.argv[1:]))
