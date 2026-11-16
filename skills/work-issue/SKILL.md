@@ -148,7 +148,9 @@ per launch:
 - Push with `-u`. Write the **PR body to a file** (never inline in a shell command:
   backticks and quotes get eaten, and the merge-gate hook reads command text). Use the
   repo's PR template: what changed, why (`Closes #N`), how it was verified (be
-  specific, including what the user tried), what was not verified, checklist.
+  specific, including what the user tried), what was not verified, checklist. When the
+  change added or reshaped code modules, list them with what each hides (from the plan),
+  so `pr-check`'s design lens has something to check against.
 - If the session has PR tools (`get_status`, `bind_pr`), bind the PR and read CI
   through them. **The model never polls CI** (no loop of tool calls, no repeated `gh` calls:
   each one costs a turn), but it **does look**: read the status (`get_status`, or one

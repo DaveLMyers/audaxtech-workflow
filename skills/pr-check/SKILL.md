@@ -93,12 +93,17 @@ false. Calibrate effort to the *kind* of change - does it have decision logic
 to get wrong - not a feeling about diff size: `review.default_effort`
 (medium unless set) for real logic; deeper for large, risky or wide changes;
 lighter for doc-only edits, config values, comments, one-line typing fixes.
-Add a **design lens** when the change adds or reshapes code modules: did it add a shallow
+**Design lens.** When the change adds or reshapes code modules, apply this yourself while
+reading the diff, whether or not `/code-review` runs (it is a separate read, and is not
+skipped when `review.independent_review_required` is false). Did the change add a shallow
 module (a pass-through, a wrapper that only renames, an interface about as large as its
 body), widen an interface when deepening an existing module would do, or leave callers
-depending on a module's internals? Flag clear cases and say why, in the same words
-work-issue's plan used ("what it hides"); do not flag a small module that has a real
-reason, and do not turn this into a checklist. No new modules means nothing to check.
+depending on a module's internals? Compare against the modules and what each hides, as
+the PR description lists them (work-issue puts them there); if the description names
+none, say so. Flag clear cases and say why; do not flag a small module that has a real
+reason, and do not turn this into a checklist. No new modules means nothing to check, and
+a docs-only change has none.
+
 Fix findings in code this PR itself introduced; file a separate issue only when
 a finding needs its own design decision or overlaps future work. If you defer
 something, say why in the issue and in a code comment at the site.
