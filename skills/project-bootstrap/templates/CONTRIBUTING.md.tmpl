@@ -162,13 +162,20 @@ plugin's updates. None yet.
 
 - If a change adds logic with real branching/edge cases, add or update tests
   in the same PR. Pure glue code doesn't need tests just to have tests.
+- **Test first for that logic (tracer-bullet TDD).** One behavior at a time: write a
+  test, run it and confirm it fails for the right reason (show the red) before writing
+  the implementation, then make it pass and refactor. Each test goes through the
+  module's public interface, never its internals. Don't write all the tests up front.
+  Exempt: prose (skills, agents, templates), glue code, and a single-layer refactor with
+  existing coverage; say "no TDD needed" and why in one line.
 - Prefer testing pure logic (inputs -> outputs, no environment) over anything
   needing a running app - faster, and doesn't break from unrelated changes.
 - **Separation of duties for meaningfully complex logic:** whoever writes the
   implementation shouldn't be the sole author of the tests that grade it - a
   wrong mental model gets encoded twice and passes cleanly. Before calling
   tests done, run a blind check: a reviewer with *only* the spec writes what
-  they'd expect tested, and another tries to build a subtly-wrong
+  they'd expect tested (when working test-first, that list is the test plan before
+  implementation), and another tries to build a subtly-wrong
   implementation that still passes every existing test. Close the gaps.
 - A failing test blocks merge.
 

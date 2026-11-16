@@ -71,13 +71,15 @@ scoring/selection logic, game rules - not a getter or glue code). If it does, an
 implementation and its tests were written by the same author (you, in most
 cases), run the blind check:
 
-1. **Spec-only pass.** Spawn the `blind-spec-reviewer` agent. Give it ONLY the
+1. **Spec-only pass.** If `work-issue` was followed test-first, this list already
+   exists: it was the test plan before implementation, so reuse it and skip the spawn
+   unless the spec changed since. Otherwise spawn the `blind-spec-reviewer` agent. Give it ONLY the
    spec text (issue body, acceptance criteria, the relevant design-doc excerpt)
    pasted into the prompt - never the implementation, never the tests. It
    returns what *should* be tested.
 2. **Compare.** Check that list against the actual tests. Every gap is either a
    missing test or a spec ambiguity to resolve.
-3. **Saboteur pass.** Spawn the `test-saboteur` agent with paths to the spec,
+3. **Saboteur pass** (always, even when the work was test-first). Spawn the `test-saboteur` agent with paths to the spec,
    the implementation and the tests. It returns subtly wrong implementations
    the current tests would still accept, each with the test that would catch it.
 4. **Close the gaps.** Add the missing tests (and fix real bugs they expose).

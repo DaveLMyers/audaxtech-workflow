@@ -227,3 +227,13 @@ need renegotiating when collaborators join.
 **Why:** Depth cannot be decided mechanically, so a gate would be wrong in both directions, and a checklist the agent fills in without thinking is worse than none (hence "say why", and flag clear cases only). A separate `design-reviewer` agent was considered and left out: it is another file to keep in step, and the review pass already reads the diff. Revisit if the lens turns out noisy or gets skipped. Cost: like the slice rule, it is guidance a session can ignore; the plan step is where it shows.
 
 **Related:** #98, #92, #97
+
+## 2026-11-16 - Tracer-bullet TDD is the default for logic with real branching, in prose
+
+**Context:** Issue #97. `work-issue` said implement, then tests in the same change, and the same-author problem was patched afterward by the blind check. Written after the fact, tests tend to mirror the implementation; a failing test written first is a precise, checkable definition of done. This builds on #98, whose plan step names each module's interface.
+
+**Decision:** For logic with real branching or edge cases, `work-issue` builds test-first, one behavior at a time (red, green, refactor), each test through the public interface named in the plan, with the red run and shown before the implementation. For meaningfully complex logic `blind-spec-reviewer`'s list becomes the test plan before implementation, and `pr-check` reuses it; `test-saboteur` stays in `pr-check` as the audit. Exempt: prose, glue code, single-layer refactors with existing coverage; the plan says "no TDD needed" and why. CONTRIBUTING.md and the bootstrap template carry the rule. Prose only: no hook enforces it.
+
+**Why:** Not writing all tests up front avoids testing imagined behavior and coupling to internals; showing the red catches vacuous tests. The exemptions keep it from being forced onto prose and glue. Cost: guidance a session can ignore; it is checked by the plan naming TDD or "no TDD needed", and by `pr-check`.
+
+**Related:** #97, #98, #48
